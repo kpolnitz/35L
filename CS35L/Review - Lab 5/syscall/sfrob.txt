@@ -1,0 +1,70 @@
+First, I would like to compare the two sfrob programs 
+(sfrob and sfrobu) with 
+the command we became familiar with in Assignment 4:
+
+time printf '*~BO *{_CIA *hXE]D *LER #@_GZY #E\\OX 
+#^BO #FKPS #NEM\4' |
+./sfrob |
+od -ta
+
+time printf '*~BO *{_CIA *hXE]D *LER #@_GZY #E\\OX 
+#^BO #FKPS #NEM\4' |
+./sfrobu |
+od -ta
+
+sfrob:
+real	0m0.008s
+user	0m0.003s
+sys	0m0.005s
+
+sfrobu:
+real	0m0.010s
+user	0m0.004s
+sys	0m0.005s
+
+We can also try looking at the time when given a 
+semi-large input file:
+
+sfrob:
+real	0m0.005s
+user	0m0.002s
+sys	0m0.001s
+
+strobu: 
+real	0m0.006s
+user	0m0.001s
+sys	0m0.001s
+
+Now we can look at the performance of everything 
+together:
+
+sfrob:
+real	0m0.006s
+user	0m0.002s
+sys	0m0.001s
+
+sfrobu:
+real	0m0.007s
+user	0m0.001s
+sys	0m0.001s
+
+sfrobs:
+real	0m0.015s
+user	0m0.007s
+sys	0m0.008s
+
+sfrobu -f:
+real	0m0.006s
+user	0m0.001s
+sys	0m0.001s
+
+sfrobs -f:
+real	0m0.013s
+user	0m0.007s
+sys	0m0.006s
+
+Between sfrobu and its version with -f, there is 
+a very small, unnoticeable change in time. What we 
+can see that sfrobs is notably slower than strob and sfrobu.
+sfrobs with the tag -f also seems to be faster 
+than sfrobs without the tag.

@@ -1,0 +1,16 @@
+We will go through the components of the gitk window that opened:
+
+SHA1 ID: The ID (hash value)
+Top row: This details:
+	Far left:
+	Middle: Author of the changes
+	Right: Date of the change 
+
+Left column: The information (branches, follows, committer) of the changes with comments.
+In general, it shows all of the changes made to the files
+
+Right column: We see the files that are affected by the commit.
+
+The changes that are presented seem to be in a patch/diff-style format.
+
+

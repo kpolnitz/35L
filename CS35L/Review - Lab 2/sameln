@@ -1,0 +1,86 @@
+#!/bin/sh
+
+#our first argument would be our directory 
+#(i.e [script]($0) [target directory]($1)])
+directory=$1
+
+let iterator=0
+let iteratorDOT=0
+let iteratorCOMBINED=0
+#we need hidden files in the beginning so 
+#we will approach separately 
+#combine at the end
+declare -a arrFILE
+declare -a arrFILEDOT
+declare -a arrFILECOMBINED
+#hold regular files in arrays
+#since we prioritize, we will put them first in combined array
+IFS=$'\n'
+#lexicographically = alphabeticall (w/ duplicates)
+SORTEDDIR=` ls -a $directory | sort ` #will also show hidden files 
+
+#if not readable, we raise an error and go onto the next file
+
+for FILE in $SORTEDDIR
+
+do
+  if [ ! -r "$directory/$FILE" ]
+    then
+        echo "Error: Not a readable file"
+        continue
+  fi
+
+#if (FILE is not regular file, directory, or symbolic link)
+#silently move on   
+#if no, continue with process  
+ if [[ -f "$directory/$FILE" &&  ! -L "$directory/$FILE"
+ && ! -d "$directory/$FILE" ]]
+    then
+        #echo "okay well we realized it is a valid file"
+        if [ "${FILE:0:1}" == '.' ]
+        then
+          # echo "THIS FILE HAS A DOT!"
+           arrFILEDOT[ $iteratorDOT ]="$directory/$FILE"
+           let iteratorDOT=iteratorDOT+1
+        else
+        arrFILE[ $iterator ]="$directory/$FILE"
+        #echo "we are looking at the following file: ${arrFILE[$iterator]}"
+        let iterator=iterator+1
+                                 
+        fi
+ fi
+
+#if files pass tests, they will be stored in arrays for comparison
+
+
+done
+#echo "What we are working with: ${#arrFILE[@]}+${#arrFILEDOT[@]}"
+#otherwise count how many of each file there 
+#are and replace duplicates with hard links 
+#echo "we are looking at $iterator+$iteratorDOT files."
+#now let's look at the duplicates 
+#combine the two arrays
+let iteratorCOMBINED=$iterator+$iteratorDOT
+arrFILECOMBINED=("${arrFILEDOT[@]}" "${arrFILE[@]}")
+#echo "our array: ${arrFILECOMBINED[@]}"
+for ((a=0; a<$iteratorCOMBINED;a++))
+do
+    for ((b=0; b<$iteratorCOMBINED;b++))
+    do
+    #we are comparing the elements in the array to see they are duplicates
+       if [  $b -gt $a ]
+       then
+          cmp -l "${arrFILECOMBINED[$a]}" "${arrFILECOMBINED[$b]}"
+             if [ $? == 0 ] #if seen as a duplicate 
+             then
+              rm "${arrFILECOMBINED[$b]}"
+              ln "${arrFILECOMBINED[$a]}" "${arrFILECOMBINED[$b]}"
+             fi
+       fi
+    done
+done
+#if you want to check if it works, use ls -ali to see number matchup
+#test non-readable files: chmod u-r
+#echo "well you got to the end of the script"
+
+

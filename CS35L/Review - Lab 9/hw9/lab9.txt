@@ -1,0 +1,178 @@
+1.
+
+One of our problems is that we want to eliminate fancy 
+characters from our commands (because of their incompatibility
+with ASCII). For example '`' needs to be replaced with '''.
+
+In starting the lab, we will first get a copy of the Diffutils
+repository in Git format from the Linux server.
+
+git clone https://git.savannah.gnu.org/git/diffutils.git
+
+2. 
+Then I proceeded to get a log of changes for the master branch
+of Diffutils. This output would go into git-log.txt.
+(Inside diffutils folder)
+
+git log > ~/Desktop/Lab9/git-log.txt
+
+
+3.
+Next I made a list of tags used for Diffutil and placed this
+information in file called git-tags.txt.
+
+Next we are creating a patch for the commit described in the lab.
+First we have to find the commit:
+
+It was found on like 1441 of the git-log file. I found the following:
+
+1437 commit 62ca21c8c1a5aa3488589dcb191a4ef04ae9ed4f
+
+4.
+Next I will make a patch
+for this and store it in quote-patch.txt
+
+git show 62ca21c8c1a5aa3488589dcb191a4ef04ae9ed4f > ~/Desktop/Lab9/quote-patch.txt
+
+5.
+
+Now we look at version 3.0 of Diffutils:
+
+git checkout v3.0 -b diffutils (Without tag, it didn't work).
+
+6.
+We will then use the patch command to apply quote-patch
+
+patch -p1 < ~/Desktop/Lab9/quote-patch.txt
+
+Using return, 'y' as needed.
+
+(It seems that the .rej files failed to be patched). 
+
+Then we can use git status to see an overview of what happened.
+
+
+7. 
+The following were modified:
+
+#	modified:   NEWS
+#	modified:   README
+#	modified:   TODO
+#	modified:   doc/diagmeet.note
+#	modified:   ms/config.bat
+#	modified:   ms/config.site
+#	modified:   po/en.po
+#	modified:   src/analyze.c
+#	modified:   src/cmp.c
+#	modified:   src/context.c
+#	modified:   src/diff.c
+#	modified:   src/diff.h
+#	modified:   src/diff3.c
+#	modified:   src/dir.c
+#	modified:   src/ifdef.c
+#	modified:   src/io.c
+#	modified:   src/sdiff.c
+#	modified:   src/side.c
+#	modified:   src/system.h
+#	modified:   src/util.c
+#	modified:   tests/help-version
+
+
+8.
+
+Next we will shift to Emacs to use the commands brought up on the assignment
+website.
+
+We use existing files in the diffutils folder (NEWS, etc.) to implement C-x v = and C-x v u
+
+We also used C-h m in the *vc-diff* mode to find a bunch of commands to use, including
+a few such as:
+
+C-c C-a         diff-apply-hunk
+C-c C-b         diff-refine-hunk
+C-c C-c         diff-goto-source
+C-c C-d         diff-unified->context
+C-c C-e         diff-ediff-patch
+C-c C-f         next-error-follow-minor-mode
+C-c C-n         diff-restrict-view
+C-c C-r         diff-reverse-direction
+C-c C-s         diff-split-hunk
+C-c C-t         diff-test-hunk
+C-c C-u         diff-context->unified
+C-c C-w         diff-ignore-whitespace-hunk
+
+
+C-c C-a         diff-apply-hunk
+and 
+C-c C-c         diff-goto-source
+I looked more in depth at.
+
+
+9.
+I then went through and reverted all the changes to files except .c files.
+(From those on the modified list). To check, we can run git status again to 
+see that those files are no longer modified.
+
+After, I undid all the changes to the c files except the changes to the string constants. This basically changed all of the comments in the code.
+
+10.
+
+I then looked at diff.c.rej and diff3.c.rej (as mentioned in the assignment). We will then apply the rejected patches. We will do this by hand and by looking at the files. 
+(It looks like the changes were mostly to comments ` --> ')
+
+11.
+After this, I will remove all of the untracked files that I am
+warned about:
+
+git clean -f
+
+12.
+When I do git status, I get the following:
+
+#	modified:   src/cmp.c
+#	modified:   src/diff.c
+#	modified:   src/diff3.c
+#	modified:   src/dir.c
+#	modified:   src/sdiff.c
+#	modified:   src/util.c
+
+Then I do git diff and put that input into a file (quote-3.0-patch.txt).
+git diff > ~/Desktop/Lab9/quote-3.0-patch.txt
+
+13. 
+
+I look at the commands described in the README-hacking file.
+It tells me that I need to do:
+
+        $ ./bootstrap
+        $ ./configure
+        $ make
+        $ make check
+(We are working on lnxsrv09)
+NOTE: We need to do export PATH=/usr/local/cs/bin:$PATH before, or else
+we will have problems (help2man not found, etc.)
+
+I needed to apply an additional patch before configuring:
+
+patch -p1 < somepatch.diff 
+
+When we do diff . -, we get:
+./diff: cannot compare '-' to a directory
+For diff --help, we do not find any `s. 
+
+
+14.
+
+Next we will do the sanity test.
+
+We make two folders diffutils-3.0-patch and diffutils-3.0.
+
+In the end, we ended up running the following command:
+
+diffutils-3.0-patch/diff -pru diffutils-3.0 diffutils-3.0-patch >quote-3.0-test.txt
+
+
+15.
+
+We see that they are not IDENTICAL, but the differences that are there are not
+very important.

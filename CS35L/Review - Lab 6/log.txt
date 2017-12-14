@@ -1,0 +1,121 @@
+First, I started off by checking if I am using a new enough version of sort
+by using the sort --version command (on the Linux server).
+I get the following:
+
+sort (GNU coreutils) 8.22
+Copyright (C) 2013 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by Mike Haertel and Paul Eggert.
+
+Now we will measure its performance with the multithreaded sort.
+First, I will make a file with 1*10^7 random "single-precision" floating
+point numbers. I did this by using the od command (as mentioned in 
+the assignment page). We look at the od command page and look for the 
+arguments that are the most suitable. We find the following: 
+
+-N  count
+Format no more than count bytes of input. By default, 
+count shall be interpreted as a decimal number. With a
+leading 0x or 0X, count shall be interpreted as a 
+hexadecimal number; otherwise, with a leading '0', 
+it shall be interpreted as an octal number. If count 
+bytes of input (after successfully skipping, if -j skip 
+is specified) are not available, it shall not be considered 
+an error; the od utility shall format the input that is available.
+
+I decided to use the following command:
+(Said to use sed and tr commands)
+od -tf -N 80000000 < /dev/urandom | tr -s ' ' '\n' | sed '/^$/d' > rand.txt &
+I ran in the background because processing took a while.
+
+After, I decided to use the time command, as mentioned in the assignment.
+time -p sort -g < rand.txt > /dev/null
+I get the following:
+real 46.12
+user 246.48
+sys 1.77
+
+Next I will invoke sort --parallel with the different thread counts:
+
+time -p sort -g --parallel=1 rand.txt > /dev/null 
+real 240.10
+user 238.94
+sys 1.16
+time -p sort -g --parallel=2 rand.txt > /dev/null 
+real 126.21
+user 240.56
+sys 1.20
+time -p sort -g --parallel=4 rand.txt > /dev/null 
+real 73.07
+user 252.53
+sys 0.55
+time -p sort -g --parallel=8 rand.txt > /dev/null 
+real 46.81
+user 258.42
+sys 2.41
+
+We see a decrease in real time because of the fact that 
+the commands are split within several CPUs, as a result, 
+we can split up the work and move faster through the command.
+We also know that after a certain number of threads, the time 
+in performance tends to be less maximized (saving less time).
+This is probably related to the fact that performance is maximized 
+up to the number of CPUs (i.e you can have the most speed with 4 threads 
+on 4 processors, but any more threads after that, it is not as fast).
+
+If we use cat /proc/cpuinfo | grep processor, we can see how many processors
+we have:
+processor	: 0
+processor	: 1
+processor	: 2
+processor	: 3
+processor	: 4
+processor	: 5
+processor	: 6
+processor	: 7
+processor	: 8
+processor	: 9
+processor	: 10
+processor	: 11
+processor	: 12
+processor	: 13
+processor	: 14
+processor	: 15
+processor	: 16
+processor	: 17
+processor	: 18
+processor	: 19
+processor	: 20
+processor	: 21
+processor	: 22
+processor	: 23
+processor	: 24
+processor	: 25
+processor	: 26
+processor	: 27
+processor	: 28
+processor	: 29
+processor	: 30
+processor	: 31
+
+So we have 32 processors. We can compare 32 threads and 36 threads.
+What should happen is that the 36 threads should not be as fast
+as using 32 threads:
+
+For 32 threads we get:
+real 36.53
+user 410.84
+sys 2.16
+
+For 36, we get:
+real 46.58
+user 361.75
+sys 3.70
+
+We can see that the idea mentioned above stands with this output.
+
+
+

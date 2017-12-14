@@ -1,0 +1,32 @@
+#!/bin/sh
+
+#since uppercase = lowercase:                                                  \
+
+tr '[:upper:]' '[:lower:]' |
+
+grep '<td>.*</td>' | #looks only at characters between <td> and </td>                                                           
+sed -r 's/<([a-zA-Z0-9]+)>[ \s\t]*<\/\1>//g' | #gets rid of empty <td></td>
+
+sed 's/<u>//g' | #since <u>a</u> wants to be treated as if it were "a"  
+sed 's/<\/u>//g' |
+
+#commas will be deleted and treated as another word:                               
+
+
+#we also don't need the tags:                                                   
+sed 's/<td>//g' |
+sed 's/<\/td>//g' |
+sed 's/<tr>//g'  |
+sed 's/<\/tr>//g' |
+sed 's/<[^>]*>//g' | #get rid of unnecessary HTML tags
+
+#since ` is going to be treated as ',                                           
+tr '\`' "'" |
+
+sed '/^\s*$/d' | #deletes lines with unnecessary spaces
+awk 'NR%2==0' | #takes every other line 
+sed 's/\,/\n/g' | #commas will be deleted and treated as another word
+sed 's/\s/\n/g' | #words after a space will be more words
+tr -d '[:blank:]' | #gets rid of unecessary space 
+#sort through and put them in dictionary order (no duplicates)                 
+sort -u

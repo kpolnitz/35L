@@ -1,0 +1,133 @@
+LAB 1
+
+ans1.txt
+
+1. You can use man -k [keyword] (without brackets). I found this by typing in " man man"  
+and scrolling through to see the man -k option. After I tested this feature by finding a man file.
+2. I found that cp was located at /bin/cp. I used the command whereis cp after discovering 
+this command by using man (man -k “where”).
+I discovered that wc was located at /usr/bin/wc. I also used the same command (whereis wc).
+3. The executable programs are as follows:
+   /usr/bin/w - Shows who is logged in and what they are doing
+   /usr/bin/[ - A shorter version of the test command
+   /usr/bin/X - Leads to a "portable, network-transparent window system"
+4. It is discovered that the symbolic link leads to /etc/alternatives/emacs (ls	-l).
+5. These operations are considered a combination of the "who" and what their permissions are.
+   g+s: Setting the ID for the group
+   o-x: Others are not permitted to use execution bits.
+6. To find files modified in the last 3 weeks, we use find / type f -mtime -21 
+7. We can use: find / type d -mtime -21 
+8. In /usr/bin/, there are 350 symbolic links (find -type l | wc)
+9. The oldest file is: libgamin-1.so.0.1.10
+10. It gets its data from locale settings and potential locale variables (LC_* Variables)
+11. I used C-h a to figure out the commands containing sort. They are the following: 
+Buffer-menu-sort              
+Buffer-menu-sort-by-column   
+ibuffer-invert-sorting       
+ibuffer-toggle-sorting-mode  
+rmail-sort-by-author          
+rmail-sort-by-correspondent   
+rmail-sort-by-date
+sort-columns
+sort-fields                 
+sort-lines                   
+sort-numeric-fields          
+sort-pages            
+sort-paragraphs 
+sort-regexp-fields           
+12. I was able to find the descriptions by using C-h c. I used C-h f to look more 
+into each of the functions.  The commands are as follows:
+    C-M-a: runs beginning-of-defun: It will move you backward to the beginning of a 
+defun (i.e moved cursor back to the beginning of this file) 
+    C-M-b: runs backward-sexp: You can move backwards across a single expression. 
+(i.e when cursor in a word, moves it back to the first character of the word)
+    C-M-c: runs exit-recursive-edit: Exits the innermost recursive edit/mini-buffer
+    C-M-d: runs down-list: Moves forward and down to one more level of parentheses. 
+    C-M-e: runs command for end-of-defun: Moves to the end of the defun(moves cursor 
+to the end of the file)
+    C-M-f: runs forward-sexp:Moves across a balanced expression (moves cursor to 'n' of "expression")
+    C-M-g: seems to be undefined
+    C-M-h: runs mark-defun: It will mark at the end of the defun and the point to the beginning. 
+13.Runs keyboard quit: 'Quit' appears in lower part of window. During the execution of Lisp 
+code, using this character will cause a direct quit.
+14.Again I used C-h f to see the function of yank (C-y), which can be used to paste the last
+stretch of text that was killed.
+15. There are two files before, those with l in front of permission are highlighted in purple.
+
+---------------------------------------------------------------------
+key1.txt
+
+Exercise 1.1
+1. e m a c s SP e x e r 1 . h t m l
+2. C-s P U B L I C C-M-f 
+3. C-s L a b o r a t o r y C-M-b
+4. C-s s e l f - r e f e r e n t i a l C-M-b
+5. C-s a r r o w C-M-b
+6. C-e
+7. C-a
+8. You could use M-< and M-> to navigate up and down the file faster.
+9. Did not use arrow keys to navigate.
+10.C-x C-c
+Exercise 1.2
+1. e m a c s SP e x e r 2 . h t m l
+2. C-s < ! C-a C-k
+3. C-s D E L E T E M E C-a C-k 
+4. C-s < ! - - C-a C-k C-n C-k C-n C-k
+5. C-s  - > DEL DEL DEL DEL DEL DEL DEL C-s ! C-a C-k
+Exercise 1.3
+1. e m a c s SP e x e r 3 . h t m l
+2. C-s A s s i g n m e n t SP 1 Enter DEL 3 7 C-s A s s i g n m e n t SP 1 Enter DEL 3 7 
+3. M-< C-s U T F - 8 Enter DEL DEL DEL DEL S - A S C I I
+4. C-s < / o l > C-M-a Enter
+5. C-x C-c
+Exercise 1.4
+1. c a t SP e x e r 2 . h t m l SP  e x e r 2 . d i f f SP > e x e r 4 . h t m l
+2. e m a c s SP e x e r 3 . h t m l
+3. ESC SHIFT > Comment #1: C-r - < C-SP C-SP C-e M-w ESC SHIFT < C-s < / h t C-n  C-y
+ Comment #2: C-s - < C-a C-SP C-SP C-n M-w ESC SHIFT < C-s L a C-n C-n C-y
+ Comment #3: C-s - < C-s C-s C-a C-SP C-SP C-e M-w ESC SHIFT < C-S H o m C-n C-n C-y, 
+ Comment #4: C-s l e a r n SP C-a C-SP C-SP C-n C-n C-n M-w ESC SHIFT < C-s s u b m i t 
+< C-n C-n C-y
+ Comment #5: C-s < ! - - - - > C-SP C-SP C-b C-b C-b C-b C-b C-b C-b M-w C-r l i n e s C-r 
+C-M-f C-y
+4. Completed above.
+5. C-s - - - C-a C-SP C-SP ESC Shift > C-w
+6. C-x u
+7. - - > C-r r e s o C-r C-n < ! - -
+8. There are 7 occurrences (M-x c o u n t - m a t c h e s Enter <ol> Enter). 
+M-x r e p l a c e - s t r i n g < o l > Enter < O l >
+9. d i f f SP  - u SP  e x  e r 1 . h t m l SP  e x e r 4 .  ht m l SP  > e x e r 4 . 
+d i f f This is correct. 
+Exercise 1.5
+1. ESC x Enter ~/ j u n k Enter 
+2. C-x C-f j u n k / h e l l o . c 
+3. M-x c o m p i l e DEL DEL DEL DEL DEL DEL DEL g c c SP h e l l o . c 
+4. C-x b h e l l o - o u t Enter M-x c o m p i l e Enter m a k e SP - k SP h e l l o
+5.
+#include <stdio.h>
+int
+main (void)
+{
+  char n = '\n';
+  char b = '\\';
+  char q = '"';
+  char const *p = "#include <stdio.h>%cint%cmain (void)%c{%c  char n = '%cn';
+  %c  char b = '%c%c';%c  char q = '%c';
+  %c  char const *p = %c%s%c;
+  %c  printf (p, n, n, n, n, b, n, b, b, n, q, n, q, p, q, n, n, n, n);
+  %c  return 0;%c}%c";
+  printf (p, n, n, n, n, b, n, b, b, n, q, n, q, p, q, n, n, n, n);
+  return 0;
+}
+Exercise 1.6
+1. C-x b Enter
+2. C-j 
+3. s e t q SP x SP ( r a n d o m ) C-j (Result: -737004071327947834)  s e t q SP y SP ( r a n d o m ) 
+C-j (Result: -1000278277145540493)
+4. The number is incorrect and a lot smaller than the result. (470588570765279730 )
+5. The result was as follows: 470588570765279730 (#o32076734772364540762, #x687ddcfd3d2c1f2) 
+6. It is not random because there is a limited range of numbers. There seems to be a cap on the highest 
+and lowest number that emacs can calculate.
+7. The minimum value that can be used is around (negative) 2**29 - 1 (64 bit).
+ The highest value that can be used is: 2**29 - 1 (64 bit). If you divide this by 4x10^17, you get a very 
+small percentage (10^14).As a result, the probably of calculating it correctly is very small.

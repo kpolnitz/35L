@@ -1,0 +1,478 @@
+LAB 4
+
+lab4.txt
+
+First we start off by getting the coreutils bug onto the computer:
+We make a temp folder to put it in:
+
+mkdir oldcore
+cd oldcore
+wget http://web.cs.ucla.edu/classes/fall17/
+cs35L/assign/coreutils-with-bug.tar.gz
+
+Then we unzip and place its contents in the folder:
+
+tar -xzf coreutils-with-bug.tar.gz 
+
+Then we navigate to coreutils and try to build it.
+
+./configure --prefix=/u/eng/class/classkae/Desktop/Lab4/
+oldcore/coreutils-with-bug
+make
+make install
+
+We run into a problem:
+
+utimens.h:2:5: error: conflicting types for 'futimens'
+ int futimens (int, char const *, struct timespec const [2]);
+     ^
+It seems that this error is a result of having duplicate types
+of futimens, the patch deals with this by only using one of them.
+
+In fixing this issue, we patch this in coreutils:
+
+touch corepatch
+vi corepatch <— we copy and paste patch here
+patch -p1 < corepatch
+
+Then we try to build it again and it builds successfully.
+We can test this by duplicating what’s on Assignment 4:
+
+We must make sure to use the following:
+TZ=UTC0 ~/Desktop/Lab4/oldcore/coreutils-with-bug/bin/ls -lt 
+--full-time wwi-armistice now now1
+Otherwise, we will not use the correct ls command and get the wrong result.
+
+In doing so, we run into a bug:
+
+-rw-r--r-- 1 classkae class 0 1918-11-11 11:00:00.000000000 +0000 wwi-armistice
+-rw-r--r-- 1 classkae class 0 2017-10-30 02:05:53.327530210 +0000 now1
+-rw-r--r-- 1 classkae class 0 2017-10-30 02:05:37.068260907 +0000 now
+
+We start the flawed ls in gdb by utilizing:
+
+gdb ls 
+
+After receiving the executable ls for debugging. 
+
+(This was inside the source folder)
+
+We want to analyze the relationships with time. We can look for the functions revolving around time. I did info to see how I could go about doing this. I started by looking at:
+info variables
+I became interested in the static long current_time and current_time_ns variables. I kept these variables in the back of my mind.
+Next,  I went through the program with list. I kept using this command until I came along lines of code that dealt with time:
+sort_files() - 1259: Could have something to do with the order. We run along a switch case
+having to do with the ls -t command:
+
+1582		case 't':
+1583		  sort_type = sort_time;
+1584		  sort_type_specified = true;
+(gdb) 
+1585		  break;
+
+This told me to look for the variable sort_time. I believe that is where the error is.
+The list process became tedious, so I began looking at the functions (info functions). We see the
+following functions dealing with time:
+
+static int compare_atime(V, V);
+static int compare_ctime(V, V);
+static int compare_mtime(V, V);
+static int compstr_atime(V, V);
+static int compstr_ctime(V, V);
+static int compstr_mtime(V, V);
+static void sort_files(void);
+(Just to start)
+
+What we will do is place breakpoints at the beginning of different functions and check variables to see if they are acting correctly.
+
+After inserting breakpoints and testing the functionality with the command (b [insert function] for the first 4 functions), we notice a more interesting breakpoint noted in this output from info b:
+
+Num     Type           Disp Enb Address            What
+2       breakpoint     keep y   <MULTIPLE>         
+2.1                         y     0x0000000000406483 in rev_cmp_mtime 
+                                                   at ../lib/timespec.h:48
+2.2                         y     0x00000000004064c0 in compare_mtime 
+                                                   at ../lib/timespec.h:48
+(this says two because I deleted a breakpoint beforehand. It says breakpoint 1 at the bottom because I restarted gdb).
+
+At first I naively tried to test out the breakpoint by doing:
+
+r -lt --full-time  ~/Desktop/Lab4/oldcore/coreutils-with-bug/bin/wwi-armistice
+
+Instead we ran: 
+
+/w/home.07/class/classkae/Desktop/Lab4/oldcore/coreutils-with-bug/src/ls -lt --full-time  ~/Desktop/Lab4/oldcore/coreutils-with-bug/bin/wwi-armistice  ~/Desktop/Lab4/oldcore/coreutils-with-bug/bin/1st
+
+When we ran the ls -lt command with this breakpoint we got:
+
+Breakpoint 1, compare_mtime (a=0x6170b0, b=0x617160) at ls.c:2884
+2884	static int compare_mtime (V a, V b) { return cmp_mtime (a, b, xstrcoll); }
+
+This told me that I should check out the code around line 2884 (list 2884).
+
+2880	  int diff = timespec_cmp (get_stat_mtime (&b->stat),
+2881				   get_stat_mtime (&a->stat));
+2882	  return diff ? diff : cmp (a->name, b->name);
+2883	}
+2884	static int compare_mtime (V a, V b) { return cmp_mtime (a, b, xstrcoll); }
+2885	static int compstr_mtime (V a, V b) { return cmp_mtime (a, b, strcmp); }
+2886	static int rev_cmp_mtime (V a, V b) { return compare_mtime (b, a); }
+2887	static int rev_str_mtime (V a, V b) { return compstr_mtime (b, a); }
+2888
+
+We see that compare_mtime is somehow control by cmp_mtime, but I will step through the processes to see if 
+we can spot the problem with the code given (s).
+
+I notice that this is responsible for getting the time:
+2880	  int diff = timespec_cmp (get_stat_mtime (&b->stat),
+2881				   get_stat_mtime (&a->stat));
+
+This told me that I should check out that function:
+
+timespec_cmp (b=..., a=...) at ../lib/timespec.h:48
+48	  int diff = a.tv_sec - b.tv_sec;
+
+In stepping, we discover that this function leads to timespec.h, which I checked out in vim.
+In the function we notice a variable called diff. I start to look at the values of diff after stepping.
+
+$3 = 3
+to 
+$4 = 1509039365
+after 
+return diff ? diff : a.tv_nsec - b.tv_nsec;
+This indicates some radical changes during 
+int diff = a.tv_sec - b.tv_sec
+
+I see this comment before:
+/* Return negative, zero, positive if A < B, A == B, A > B, respectively.
+   Assume the nanosecond components are in range, or close to it.  */
+
+This gives me the impression that the subtraction between the recent year (2017) and the old year (1918) 
+confused the system because of the large difference (possible overflow?).
+
+The comment hints at how we should fix the timespec problem. Because want to make a diff file, we will make a duplicate
+for comparison later. (Different window)
+cp timespec.h othertimespec.h
+
+Here is the piece of code inserted into the duplicate:
+
+    if (a.tv_sec > b.tv_sec)
+    {
+        return 1;
+    }
+    else if (a.tv_sec < b.tv_sec)
+    {
+        return -1;
+    }
+  return 0;
+
+
+Basically coding what the command gave.
+Then, I was finally able to make the diff file (patch) in the “form of a ChangeLog entry”
+I looked online and found out that the feature is within emacs.
+I used C-x 4 a and added my own commentary for my patch.
+
+Let’s now try the same issue on the SEASnet server:
+
+-rw-r--r-- 1 classkae class 0 2054-12-17 17:28:16.000000000 +0000 anotheroldfile
+-rw-r--r-- 1 classkae class 0 2017-10-28 02:49:50.998972000 +0000 oldlol
+-rw-r--r-- 1 classkae class 0 2017-10-28 02:49:40.148816000 +0000 newlol
+
+The issue persists on the SEASnet home directory! It handles it poorly!
+
+-------------------------------------------------------------------------
+lab4.diff
+
+2017-10-27  Kaela Nicole Polnitz  <classkae@lnxsrv09.seas.ucla.edu>
+       * othertimespec.h (timespec_cmp): Replaces flawed subtraction operations for tracking
+       * time with if-else statements that adequate acquire and list time.
+
+
+--- timespec.h	2016-10-27 19:23:53.970901000 -0700
++++ othertimespec.h	2017-10-27 19:26:20.816404000 -0700
+@@ -45,8 +45,15 @@
+ static inline int
+ timespec_cmp (struct timespec a, struct timespec b)
+ {
+-  int diff = a.tv_sec - b.tv_sec;
+-  return diff ? diff : a.tv_nsec - b.tv_nsec;
++    if (a.tv_sec > b.tv_sec)
++    {
++        return 1;
++    }
++    else if (a.tv_sec < b.tv_sec)
++    {
++        return -1;
++    }
++  return 0;
+ }
+ 
+ # if ! HAVE_DECL_NANOSLEEP
+
+-----------------------------------------------------------------------
+sfrob.c
+
+//
+//  main.cpp
+//  Lab4
+//
+//  Created by Kaela Polnitz on 10/26/17.
+//  Copyright © 2017 Kaela Polnitz. All rights reserved.
+//
+
+//we check to see if the two strings are the same
+//encrypt the strings
+//compare the encrypted strings
+//a < b: -1
+//a == b: 0
+//a > b: 1
+//use malloc, realloc, free, qsort
+//malloc - original
+//realloc - adding onto previously created memory
+//free - freeing up space
+//qsort - sorts an array of nel objects (specified width)
+//  -already-made function
+//encrypted via memfrob
+// we need to allocate space for words, and add more if needed
+//EOF = End of File
+//you need a helper function
+//trigger EOF with Control+D
+//internet: "The memfrob() function encrypts the first
+//n bytes of the memory area s by exclusive-ORing
+//each character with the number 42." (linux.die.net)
+
+#include <stdio.h>
+#include <ctype.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h> //for memcmp
+//ends with a space, not a /0
+void output(const char* a)
+{
+    while(*a != ' ')
+    {
+        a++;
+        putchar(*a);
+    }
+    return;
+}
+
+void checkMem(void * a)
+{
+    if (a == NULL)
+    {
+        printf("Memory allocation could not be completed.\n");
+        exit(1);
+    }
+    
+}
+
+int frobcmp (char const* a, char const* b)
+{
+    //in the style of memcmp
+    bool diff = false;
+    bool isItSpaceA = false;
+    bool isItSpaceB = false;
+    
+    //fix bug: not displaying * and #
+    
+    
+    while(*a != ' ' && *b != ' ')
+    {
+        //we are going to look byte by byte for comparison to see if they're different letters
+        if ((*a ^ 42) != (*b ^ 42))
+        {
+            diff = true;
+            if (*a != ' ' && *a != ' ')
+            {
+                if ((*a ^ 42) < (*b ^ 42))
+                {
+                    return -1;
+                }
+                if ((*a ^ 42) > (*b ^ 42))
+                {
+                    return 1;
+                }
+            }
+        }
+        
+                           a++;
+                           b++;
+        
+    }
+    //we want to see if there are spaces at the end of the comparisons
+    
+    if (*a == ' ')
+    {
+        isItSpaceA = true;
+    }
+    if (*b == ' ')
+    {
+        isItSpaceB = true;
+    }
+    //if they are the same so far but we are unsure which one is longer than the other
+    if (!diff)
+    {
+        
+        if (isItSpaceA && !isItSpaceB)
+        {
+            //if they are the same up to a certain point, one is just shorter than the other
+            //ex: abc and abcdef
+            //printf("You encountered this \n");
+            return -1; //because a < b
+        }
+        else if (!isItSpaceA && isItSpaceB)
+        {
+            //same thing, but reversed of above
+            return 1; //a > b
+        }
+    }
+    return 0;
+    //otherwise, they are equal
+    //breakpoint here
+}
+
+
+
+
+int frobFunc(const void *a, const void *b)
+{
+    //printf("You made it to the frobFunc \n");
+    return frobcmp(*((char**)a), *((char**)b));
+}
+
+
+int main() {
+    //we are gonna get characters, character by character
+    //wwe will note how many words we have also
+    //we can start off with arbitrary memory and double it if needed
+    //if srob receives something empty, immediately return
+    int arbMem = 30;
+    int doubledMem = arbMem; //number will be used for reallocating memory
+    char* allWords;
+    
+    allWords = (char*)malloc(sizeof(char)*arbMem); //we need to keep track of words formed
+    char findChar;
+    int numOfWords = 0;
+    int a = 0;
+    
+    //note memory allocation failures - would be null
+    //do this everytime memory is being allocated
+    
+    checkMem(allWords);
+    
+    //printf("We are getting output:");
+    findChar = getchar();
+    
+    while(findChar != EOF)
+    {
+        //remember: You can test EOF with Ctrl+D
+        //if we are given no input, then exit.
+        
+        if (a == doubledMem) //if we max out, just make more space
+        {
+            //printf("You need more memory! \n");
+            doubledMem *= 2;
+            allWords = (char*)realloc(allWords, sizeof(char)*doubledMem);
+            checkMem(allWords);
+            //we can double them both for safety
+        }
+        
+        if (findChar == ' ')
+        {
+            allWords[a] = findChar;
+            a+=1;
+            numOfWords+=1;
+            
+        }
+        else
+        {
+            allWords[a] = findChar;
+            a+=1;
+        }
+        findChar = getchar();
+    }
+    
+    //printf("end of loop\n");
+    
+    //you'll need space for your SPACE
+    if(a == doubledMem)
+    {
+        doubledMem *= 2;
+        allWords = (char*)realloc(allWords, sizeof(char)*doubledMem);
+        checkMem(allWords);
+    }
+    //we need to add space to end of words
+    if (allWords[a-1] != ' ')
+    {
+        allWords[a] = ' ';
+        numOfWords+=1;
+    }
+    
+    if(allWords[0] == '\n' || allWords[0] == ' ')
+    {
+        printf("You have no input!\n");
+        return 1;
+    }
+    
+    char** newWords = (char**)malloc(sizeof(char*)*numOfWords);
+    checkMem(newWords);
+    
+    int b = 0;
+   
+    
+    char* originalAllWords = allWords;
+    
+    while (b < numOfWords)
+    {
+        //we look at words until we get to the last word
+        newWords[b] = allWords;
+        
+        if (b+1 == numOfWords) break;
+        
+        while ((*allWords) != ' ')
+        {
+            allWords++;
+        }
+        b+=1;
+        allWords++;
+        
+    }
+    //get the words then sort them
+    //printf("Right before q sort\n");
+    //breakpoint here
+    //printf("After sort\n");
+    
+    qsort(newWords, numOfWords, sizeof(char*), frobFunc);
+    
+    //print the output
+    int j = 0;
+    while(j < numOfWords)
+    {
+        //printf("You got in here \n");
+        putchar(*(newWords[j]));
+        output(newWords[j]);
+        j+=1;
+    }
+    
+    if(j == 0)
+    {
+        printf("You have no output\n");
+        return 1;
+    }
+    //essentially though, you'll only get here if you have errors
+    //empty input is already taken care of
+    //free all the memory at the end
+    free(newWords);
+    free(originalAllWords);
+    
+    //we can't free oneWord and allWord
+    
+    //printf("Well you got to the end of the code");
+    return 0;
+}
+//you must make executable before runing test cases oin shell
+//report errors!!!!
+//input, output, memory allocation failures
+//delete unused pointers, caused memory leak!!
+

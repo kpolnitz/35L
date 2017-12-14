@@ -1,0 +1,301 @@
+LAB 2
+
+lab2.log
+
+I first looked to see if all of the 
+information in locale was correct (it was not). 
+I set all of the conditions to 'C'
+
+I started off by making a copy of 
+words that was placed on my laptop 
+(to avoid unnecessary permission changes) 
+and used sort words -o copywords.txt.
+
+I then proceeded to make a copy of 
+Assignment 2 by using 
+wget accompanied by the site URL.
+
+tr -c 'A-Za-z' '[\n*]' Enter < assign2.html 
+Lists the words before and after the '.'
+ with a space in between.
+
+The following commands do the following:
+
+tr -c 'A-Za-z' '[\n*]' < assign2.html 
+   It seems that anytime there is a number
+(or other non-alphabetical characters),
+   it is replaced with a newline.
+   Whenever there is a '.', it just skipped
+ to the next word.
+
+tr -cs 'A-Za-z' '[\n*]' < assign2.html 
+Different from above in that it prints 
+the tags are less empty 
+lines and blank space is absorbed. Also 
+each sequence seems to be 
+replaced with a single appearance of the 
+specific character in the sequence.
+
+tr -cs 'A-Za-z' '[\n*]' | sort < assign2.html
+Looks at the lines from #2 and sorts them a-z 
+(disregarding other non-alpha characters)
+
+tr -cs 'A-Za-z' '[\n*]' | sort -u < assign2.html
+Similar to the preceding command, 
+but removes unnecessary duplicates/copies
+
+
+tr -cs 'A-Za-z' '[\n*]' | sort -u | 
+comm - words < assign2.html
+Seems like it sorts all the words found in ‘words’ 
+in alphabetical order.
+We are also given 3 columns: 
+The first with words from input, the second
+ with words from ‘words’, 
+the third with words in both.
+
+tr -cs 'A-Za-z' '[\n*]' | sort -u | 
+comm -23 - words < assign2.html
+Sorts the words that are found assign2.html, 
+after finding words in ‘words’.
+We will start by obtaining the English and 
+Hawaiian words with wget.
+After we will create the file that will have 
+all of the Hawaiian words 
+(touch hwords.txt).
+Then we will create the script for sorting (buildwords)
+
+touch buildwords
+chmod u+x buildwords 
+
+Edited our buildwords file in emacs. (emacs buildwords)
+We repeatedly test our script with:
+cat hwnwdseng.htm | ./buildwords | less
+to see if our script is working correctly.
+
+buildwords:
+
+
+#!/bin/sh
+
+#since uppercase = lowercase:                                                  \
+
+tr '[:upper:]' '[:lower:]' |
+
+grep '<td>.*</td>' | #looks only at characters
+ between <td> and </td>                          \
+
+sed -r 's/<([a-zA-Z0-9]+)>[ \s\t]*<\/\1>//g' 
+| #gets rid of empty <td></td>
+
+sed 's/<u>//g' | #since <u>a</u> wants to be 
+treated as if it were "a"	
+sed 's/<\/u>//g' |
+
+#commas will be deleted and treated as another word:
+
+
+#we also don't need the tags:
+sed 's/<td>//g' |
+sed 's/<\/td>//g' |
+sed 's/<tr>//g'  |
+sed 's/<\/tr>//g' |
+sed 's/<[^>]*>//g' | #get rid of unnecessary HTML tags
+
+#since ` is going to be treated as ',
+tr '\`' "'" |
+
+sed '/^\s*$/d' | #deletes lines	with unnecessary spaces
+awk 'NR%2==0' |	#takes every other line	
+sed 's/\,/\n/g' | #commas will be deleted 
+and treated as another word
+sed 's/\s/\n/g' | #words	after a	space 
+will be more words
+tr -d '[:blank:]' | #gets rid of unnecessary space
+#sort through and put them in dictionary
+ order (no duplicates)
+sort -u
+
+
+
+Looking at the example provided, the new command should be:
+cat  hwnwdseng.htm | ./buildwords > hwords 
+(via lecture slides)
+This will formally create the Hawaiian dictionary in hwords.
+
+Looking at parts of the earlier lab, we should 
+transform the command into:
+
+(we must remember that the Hawaiian words are lower case)
+ 
+tr -cs "pk\'mnwlhaeiou" '[\n*]' < assign2.html 
+| tr "PKMNWLHAEIOU" "pkmnwlhaeiou" | sort -u | comm -23 - hwords
+
+to find misspelled words.
+
+(lower case for all hawaiian letters, 
+newlines characters that are not in 
+the Hawaiian dictionary)
+
+to find the number, we use:
+
+tr -cs "pk\'mnwlhaeiou" '[\n*]' < assign2.html 
+| tr "PKMNWLHAEIOU" "pkmnwlhaeiou" | sort -u 
+| comm -23 - hwords| wc -l 
+
+where we find 198 misspelled words (200 - first two lines).
+
+For misspelled Eng words, we look at 3rd column of this command:
+
+tr -cs "pk\'mnwlhaeiou" '[\n*]' < assign2.html 
+| tr "PKMNWLHAEIOU" "pkmnwlhaeiou" | sort -u | comm - hwords
+
+Misspelled English words that are Hawaiian:
+kula, lau, etc.
+
+For misspelled Hawaiian words, we look at 1st column of last command.
+Misspelled Hawaiian words that are English words: 
+all, an, who, etc.
+
+
+---------------------------------------------------------------------------
+
+sameln
+
+#!/bin/sh
+
+#our first argument would be our directory 
+#(i.e [script]($0) [target directory]($1)])
+directory=$1
+
+let iterator=0
+let iteratorDOT=0
+let iteratorCOMBINED=0
+#we need hidden files in the beginning so 
+#we will approach separately 
+#combine at the end
+declare -a arrFILE
+declare -a arrFILEDOT
+declare -a arrFILECOMBINED
+#hold regular files in arrays
+#since we prioritize, we will put them first in combined array
+IFS=$'\n'
+#lexicographically = alphabeticall (w/ duplicates)
+SORTEDDIR=` ls -a $directory | sort ` #will also show hidden files 
+
+#if not readable, we raise an error and go onto the next file
+
+for FILE in $SORTEDDIR
+
+do
+  if [ ! -r "$directory/$FILE" ]
+    then
+        echo "Error: Not a readable file"
+        continue
+  fi
+
+#if (FILE is not regular file, directory, or symbolic link)
+#silently move on   
+#if no, continue with process  
+ if [[ -f "$directory/$FILE" &&  ! -L "$directory/$FILE"
+ && ! -d "$directory/$FILE" ]]
+    then
+        #echo "okay well we realized it is a valid file"
+        if [ "${FILE:0:1}" == '.' ]
+        then
+          # echo "THIS FILE HAS A DOT!"
+           arrFILEDOT[ $iteratorDOT ]="$directory/$FILE"
+           let iteratorDOT=iteratorDOT+1
+        else
+        arrFILE[ $iterator ]="$directory/$FILE"
+        #echo "we are looking at the following file: ${arrFILE[$iterator]}"
+        let iterator=iterator+1
+                                 
+        fi
+ fi
+
+#if files pass tests, they will be stored in arrays for comparison
+
+
+done
+#echo "What we are working with: ${#arrFILE[@]}+${#arrFILEDOT[@]}"
+#otherwise count how many of each file there 
+#are and replace duplicates with hard links 
+#echo "we are looking at $iterator+$iteratorDOT files."
+#now let's look at the duplicates 
+#combine the two arrays
+let iteratorCOMBINED=$iterator+$iteratorDOT
+arrFILECOMBINED=("${arrFILEDOT[@]}" "${arrFILE[@]}")
+#echo "our array: ${arrFILECOMBINED[@]}"
+for ((a=0; a<$iteratorCOMBINED;a++))
+do
+    for ((b=0; b<$iteratorCOMBINED;b++))
+    do
+    #we are comparing the elements in the array to see they are duplicates
+       if [  $b -gt $a ]
+       then
+          cmp -l "${arrFILECOMBINED[$a]}" "${arrFILECOMBINED[$b]}"
+             if [ $? == 0 ] #if seen as a duplicate 
+             then
+              rm "${arrFILECOMBINED[$b]}"
+              ln "${arrFILECOMBINED[$a]}" "${arrFILECOMBINED[$b]}"
+             fi
+       fi
+    done
+done
+#if you want to check if it works, use ls -ali to see number matchup
+#test non-readable files: chmod u-r
+#echo "well you got to the end of the script"
+
+
+---------------------------------------------------------------------------
+
+buildwords 
+
+#!/bin/sh
+
+#since uppercase = lowercase:                                                  \
+
+tr '[:upper:]' '[:lower:]' |
+
+grep '<td>.*</td>' | #looks only at characters between <td> and </td>                                                           
+sed -r 's/<([a-zA-Z0-9]+)>[ \s\t]*<\/\1>//g' | #gets rid of empty <td></td>
+
+sed 's/<u>//g' | #since <u>a</u> wants to be treated as if it were "a"  
+sed 's/<\/u>//g' |
+
+#commas will be deleted and treated as another word:                               
+
+
+#we also don't need the tags:                                                   
+sed 's/<td>//g' |
+sed 's/<\/td>//g' |
+sed 's/<tr>//g'  |
+sed 's/<\/tr>//g' |
+sed 's/<[^>]*>//g' | #get rid of unnecessary HTML tags
+
+#since ` is going to be treated as ',                                           
+tr '\`' "'" |
+
+sed '/^\s*$/d' | #deletes lines with unnecessary spaces
+awk 'NR%2==0' | #takes every other line 
+sed 's/\,/\n/g' | #commas will be deleted and treated as another word
+sed 's/\s/\n/g' | #words after a space will be more words
+tr -d '[:blank:]' | #gets rid of unecessary space 
+#sort through and put them in dictionary order (no duplicates)                 
+sort -u
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

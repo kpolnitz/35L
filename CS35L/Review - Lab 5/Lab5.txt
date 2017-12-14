@@ -1,0 +1,903 @@
+LAB 5
+
+lab.txt 
+
+Our job is to create transliteration programs for both the buffered 
+and unbuffered situations (one will use getchar and putchar, 
+while the other will use read and write). We should note that 
+special commands will not be implemented. 
+The definition of tr is as follows:
+
+The tr utility shall copy the standard input to the standard output
+with substitution or deletion of selected characters. 
+The options specified and the string1 and string2 operands shall control 
+translations that occur while copying characters and single-character 
+collating elements.
+
+We then proceed by making a tr2b file and then a tr2u file. 
+We should note that our files should contain at least 5*10^6 bytes. 
+Then we will compare 
+them in the following situations:
+(Note: We were working on the local machine the entire time, so we are 
+going to copy the files onto the Linux server to use the strace command)
+
+492  scp /Users/kaelapolnitz/Desktop/tr2u.c classkae@lnxsrv09.seas.
+ucla.edu:~/Desktop
+493  scp /Users/kaelapolnitz/Desktop/tr2b.c classkae@lnxsrv09.seas.
+ucla.edu:~/Desktop
+
+Obtaining the executables also look a little bit different on Linux:
+  996  gcc -std=c99 -o  tr2b tr2b.c
+  997  gcc -std=c99 -o  tr2u tr2u.c
+They say use a file with at least 5,000,000 bytes. 
+To do this, we use the 
+following command:
+dd if=/dev/urandom of=file.txt bs=5000 count=1000 
+(5000*1000 = 5,000,000 bytes)
+(common way I found out how to do online).
+I also look for a way to check the system calls as I do 
+the preceding commands so I 
+go to man strike.
+I find this unique case:
+       -c          Count time, calls, and errors for each 
+system call and report a summary on program exit.  On Linux, 
+this attempts to show system time (CPU time  spent
+running in the kernel) independent of wall clock time.  
+If -c is used with -f or -F (below), only aggregate totals for 
+all traced processes are kept.
+
+I think it will work for 
+#3
+a) Copying one file to another:
+In tr2b,
+classkae@lnxsrv09 ~/Desktop]$ strace -o stracecopy -c cat big.txt 
+| ./tr2b 'abc''def' > somefile1a | cat stracecopy
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 29.61    0.000061          31         2           read
+ 29.61    0.000061          15         4           open
+ 13.59    0.000028           4         8           mmap
+ 11.17    0.000023           6         4           mprotect
+  4.85    0.000010          10         1           munmap
+  3.88    0.000008           2         5           fstat
+  2.43    0.000005           5         1         1 access
+  1.46    0.000003           3         1         1 write
+  1.46    0.000003           1         4           brk
+  0.97    0.000002           2         1           execve
+  0.49    0.000001           0         3           close
+  0.49    0.000001           1         1           arch_prctl
+  0.00    0.000000           0         1           fadvise64
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000206                    36         2 total
+
+In tr2u,
+classkae@lnxsrv09 ~/Desktop]$ strace -o stracecopy -c cat big.txt 
+| ./tr2u 'abc''def' > somefile1b | cat stracecopy
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 27.52    0.000071          36         2           read
+ 22.87    0.000059          15         4           open
+ 14.73    0.000038           5         8           mmap
+  8.53    0.000022           6         4           mprotect
+  6.98    0.000018           4         5           fstat
+  5.04    0.000013          13         1           munmap
+  5.04    0.000013           3         4           brk
+  3.49    0.000009           3         3           close
+  2.33    0.000006           6         1         1 write
+  1.94    0.000005           5         1           fadvise64
+  1.55    0.000004           4         1           arch_prctl
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000258                    36         2 total
+
+
+
+
+b) Copying a file to terminal:
+In tr2b,
+classkae@lnxsrv09 ~/Desktop]$ strace -o stracebout -c cat big.txt 
+| ./tr2b 'abc''def' | cat stracebout
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 26.83    0.000077          19         4           open
+ 22.65    0.000065          33         2           read
+ 15.68    0.000045           6         8           mmap
+ 11.50    0.000033           8         4           mprotect
+  6.97    0.000020           4         5           fstat
+  4.18    0.000012          12         1           munmap
+  4.18    0.000012           3         4           brk
+  2.79    0.000008           3         3           close
+  2.09    0.000006           6         1         1 write
+  1.74    0.000005           5         1           arch_prctl
+  1.39    0.000004           4         1           fadvise64
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000287                    36         2 total
+
+In tr2u,
+[classkae@lnxsrv09 ~/Desktop]$ strace -o stracebout -c cat big.txt 
+| ./tr2u 'abc''def' | cat stracebout
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 25.85    0.000076          19         4           open
+ 23.81    0.000070          35         2           read
+ 15.31    0.000045           6         8           mmap
+ 10.54    0.000031           8         4           mprotect
+  6.12    0.000018           4         5           fstat
+  5.44    0.000016           4         4           brk
+  4.42    0.000013          13         1           munmap
+  2.72    0.000008           3         3           close
+  2.72    0.000008           8         1         1 access
+  1.36    0.000004           4         1         1 write
+  1.02    0.000003           3         1           fadvise64
+  0.68    0.000002           2         1           arch_prctl
+  0.00    0.000000           0         1           execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000294                    36         2 total
+
+Overall, they both give the same amount calls (according to the calls 
+column.
+
+#4
+Now we will see which programs are faster with the time command:
+
+For tr2b,
+classkae@lnxsrv09 ~/Desktop]$ time cat big.txt | ./tr2b 'abc' 'def'
+
+real	0m0.058s
+user	0m0.003s
+sys	0m0.003s
+
+For tr2u,
+classkae@lnxsrv09 ~/Desktop]$ time cat big.txt | ./tr2u 'abc' 'def'
+real	0m7.006s
+user	0m0.336s
+sys	0m6.560s
+
+It seems that tr2b is a little bit faster in the tests we have been 
+doing. Results have varied, but this is the general idea.
+
+-----------------------------------------------------------------------
+sfrob.txt 
+
+First, I would like to compare the two sfrob programs 
+(sfrob and sfrobu) with 
+the command we became familiar with in Assignment 4:
+
+time printf '*~BO *{_CIA *hXE]D *LER #@_GZY #E\\OX 
+#^BO #FKPS #NEM\4' |
+./sfrob |
+od -ta
+
+time printf '*~BO *{_CIA *hXE]D *LER #@_GZY #E\\OX 
+#^BO #FKPS #NEM\4' |
+./sfrobu |
+od -ta
+
+sfrob:
+real	0m0.008s
+user	0m0.003s
+sys	0m0.005s
+
+sfrobu:
+real	0m0.010s
+user	0m0.004s
+sys	0m0.005s
+
+We can also try looking at the time when given a 
+semi-large input file:
+
+sfrob:
+real	0m0.005s
+user	0m0.002s
+sys	0m0.001s
+
+strobu: 
+real	0m0.006s
+user	0m0.001s
+sys	0m0.001s
+
+Now we can look at the performance of everything 
+together:
+
+sfrob:
+real	0m0.006s
+user	0m0.002s
+sys	0m0.001s
+
+sfrobu:
+real	0m0.007s
+user	0m0.001s
+sys	0m0.001s
+
+sfrobs:
+real	0m0.015s
+user	0m0.007s
+sys	0m0.008s
+
+sfrobu -f:
+real	0m0.006s
+user	0m0.001s
+sys	0m0.001s
+
+sfrobs -f:
+real	0m0.013s
+user	0m0.007s
+sys	0m0.006s
+
+Between sfrobu and its version with -f, there is 
+a very small, unnoticeable change in time. What we 
+can see that sfrobs is notably slower than strob and sfrobu.
+sfrobs with the tag -f also seems to be faster 
+than sfrobs without the tag.
+
+
+-----------------------------------------------------------------------
+
+strobs -- executable 
+
+#!/bin/bash
+#sort files via pipeline (no temporary files)
+#use tr and sort
+#support -f option
+
+export LC_ALL='C'
+case=$1 
+#checks for -f option
+#must do this for correct use
+
+plain="\0\1\2\3\4\5\6\7\10\11\12\13\14\15\
+\16\17\20\21\22\23\24\25\26\27\30\31\32\
+\33\34\35\36\37\40\41\42\43\44\45\46\47\
+\50\51\52\53\54\55\56\57\60\61\62\63\64\
+\65\66\67\70\71\72\73\74\75\76\77\100\101\
+\102\103\104\105\106\107\110\111\112\113\114\115\116\
+\117\120\121\122\123\124\125\126\127\130\131\132\133\
+\134\135\136\137\140\141\142\143\144\145\146\147\150\
+\151\152\153\154\155\156\157\160\161\162\163\164\165\
+\166\167\170\171\172\173\174\175\176\177\200\201\202\
+\203\204\205\206\207\210\211\212\213\214\215\216\217\
+\220\221\222\223\224\225\226\227\230\231\232\233\234\
+\235\236\237\240\241\242\243\244\245\246\247\250\251\
+\252\253\254\255\256\257\260\261\262\263\264\265\266\
+\267\270\271\272\273\274\275\276\277\300\301\302\303\
+\304\305\306\307\310\311\312\313\314\315\316\317\320\
+\321\322\323\324\325\326\327\330\331\332\333\334\335\
+\336\337\340\341\342\343\344\345\346\347\350\351\352\
+\353\354\355\356\357\360\361\362\363\364\365\366\367\
+\370\371\372\373\374\375\376\377"
+
+
+export LC_ALL='C'
+
+translate="\52\53\50\51\56\57\54\55\42\43\40\41\46\47\
+\44\45\72\73\70\71\76\77\74\75\62\63\60\
+\61\66\67\64\65\12\13\10\11\16\17\14\15\
+\2\3\0\1\6\7\4\5\32\33\30\31\36\
+\37\34\35\22\23\20\21\26\27\24\25\152\153\
+\150\151\156\157\154\155\142\143\140\141\146\147\144\
+\145\172\173\170\171\176\177\174\175\162\163\160\161\
+\166\167\164\165\112\113\110\111\116\117\114\115\102\
+\103\100\101\106\107\104\105\132\133\130\131\136\137\
+\134\135\122\123\120\121\126\127\124\125\252\253\250\
+\251\256\257\254\255\242\243\240\241\246\247\244\245\
+\272\273\270\271\276\277\274\275\262\263\260\261\266\
+\267\264\265\212\213\210\211\216\217\214\215\202\203\
+\200\201\206\207\204\205\232\233\230\231\236\237\234\
+\235\222\223\220\221\226\227\224\225\352\353\350\351\
+\356\357\354\355\342\343\340\341\346\347\344\345\372\
+\373\370\371\376\377\374\375\362\363\360\361\366\367\
+\364\365\312\313\310\311\316\317\314\315\302\303\300\
+\301\306\307\304\305\332\333\330\331\336\337\334\335\
+\322\323\320\321\326\327\324\325"
+
+#we want to translate, -f means we convert everything to upper
+#taken care of with using sort -f, (man sort)
+
+
+if [[ $1 == "-f" ]]
+then
+   export LC_ALL='C'
+   tr "$translate" "$plain" | sort -f | tr "$plain" "$translate" 
+else
+   export LC_ALL='C'
+   tr "$translate" "$plain" | sort | tr "$plain" "$translate"
+
+fi
+
+
+-----------------------------------------------------------------------
+
+strobu.c 
+
+//
+//  main.cpp
+//  Lab4
+//
+//  Created by Kaela Polnitz on 10/26/17.
+//  Copyright © 2017 Kaela Polnitz. All rights reserved.
+//
+
+//we check to see if the two strings are the same
+//encrypt the strings
+//compare the encrypted strings
+//a < b: -1
+//a == b: 0
+//a > b: 1
+//use malloc, realloc, free, qsort
+//malloc - original
+//realloc - adding onto previously created memory
+//free - freeing up space
+//qsort - sorts an array of nel objects (specified width)
+//  -already-made function
+//encrypted via memfrob
+// we need to allocate space for words, and add more if needed
+//EOF = End of File
+//you need a helper function
+//trigger EOF with Control+D
+//internet: "The memfrob() function encrypts the first
+//n bytes of the memory area s by exclusive-ORing
+//each character with the number 42." (linux.die.net)
+
+//#include <stdio.h>
+#include <ctype.h>
+#include <stdbool.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <string.h> //for memcmp
+#include <sys/stat.h>
+#include <limits.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+//ends with a space, not a /0
+bool fFlag = false;
+void output(const char* a)
+{
+    while(*a != ' ')
+    {
+        a++;
+        write(1,&(*a), 1);
+    }
+    return;
+}
+
+void checkMem(void * a)
+{
+    if (a == NULL)
+    {
+        //printf("Memory allocation could not be completed.\n");
+        exit(1);
+    }
+    
+}
+
+int frobcmp (char const* a, char const* b)
+{
+    //in the style of memcmp
+    bool diff = false;
+    bool isItSpaceA = false;
+    bool isItSpaceB = false;
+    if (fFlag == true)
+    {
+        //if it has -f selected, we are sending everything to upper
+        while(*a != ' ' && *b != ' ')
+        {
+            //we are going to look byte by byte for comparison to see if they're different letters
+            if (toupper((*a ^ 42)) != toupper((*b ^ 42)))
+            {
+                diff = true;
+                if (*a != ' ' && *a != ' ')
+                {
+                    if (toupper((*a ^ 42)) < toupper((*b ^ 42)))
+                    {
+                        return -1;
+                    }
+                    if (toupper((*a ^ 42)) > toupper((*b ^ 42)))
+                    {
+                        return 1;
+                    }
+                }
+            }
+            
+            a++;
+            b++;
+            
+        }
+        
+        
+        
+    }
+
+    //fix bug: not displaying * and #
+    
+    else {
+        while(*a != ' ' && *b != ' ')
+        {
+        //we are going to look byte by byte for comparison to see if they're different letters
+            if ((*a ^ 42) != (*b ^ 42))
+            {
+                diff = true;
+                if (*a != ' ' && *a != ' ')
+                {
+                    if ((*a ^ 42) < (*b ^ 42))
+                    {
+                        return -1;
+                    }
+                    if ((*a ^ 42) > (*b ^ 42))
+                    {
+                        return 1;
+                    }
+                }
+            }
+            
+                           a++;
+                           b++;
+        
+        }
+        
+    }
+    //we want to see if there are spaces at the end of the comparisons
+    
+    if (*a == ' ')
+    {
+        isItSpaceA = true;
+    }
+    if (*b == ' ')
+    {
+        isItSpaceB = true;
+    }
+    //if they are the same so far but we are unsure which one is longer than the other
+    if (!diff)
+    {
+        if (isItSpaceA && !isItSpaceB)
+        {
+            //if they are the same up to a certain point, one is just shorter than the other
+            //ex: abc and abcdef
+            //printf("You encountered this \n");
+            return -1; //because a < b
+        }
+        else if (!isItSpaceA && isItSpaceB)
+        {
+            //same thing, but reversed of above
+            return 1; //a > b
+        }
+    }
+    return 0;
+    //otherwise, they are equal
+    //breakpoint here
+}
+
+int frobFunc(const void *a, const void *b)
+{
+    //printf("You made it to the frobFunc \n");
+    return frobcmp(*((char**)a), *((char**)b));
+}
+
+
+int main(int argc, char *argv[]) {
+    //we are gonna get characters, character by character
+    //wwe will note how many words we have also
+    //we can start off with arbitrary memory and double it if needed
+    //if srob receives something empty, immediately return
+    
+    
+    //Assignment 5 Notes:
+    //If a regular file allocate all at once
+    int arbMem = 30;
+    //int doubledMem = arbMem; //number will be used for reallocating memory
+    char* allWords;
+    char** newWords;
+    
+     //we need to keep track of words formed
+    char findChar;
+    size_t numOfWords = 0;
+    size_t a = 0;
+    long err = 0;
+
+    //note memory allocation failures - would be null
+    //do this everytime memory is being allocated
+    struct stat fileThings;
+    fstat(STDIN_FILENO, &fileThings);
+    size_t sizeOfFile = fileThings.st_size;
+    //we want to check arguments, so program doesn't run with wrong arguments
+    /*if (argc < 2)
+    {
+        char errorMessage[] = "Error: Not enough arguments! \n";
+        write(2, &errorMessage, sizeof(errorMessage));        //not enough arguments!
+        return 1;
+    }*/
+    if (argc >= 2)
+    {
+        for (int j = 1; j < argc; j++)
+        {
+            if (!strncmp(argv[j], "-f", 2))
+            {
+                fFlag = true;
+                break;
+            }
+            else if (j == argc - 1)
+            {
+                char errorMessage[] = "There is no -f argument! \n";
+                write(2, &errorMessage, sizeof(errorMessage));
+            }
+      
+        
+        }
+    }
+    
+   //ssize_t - can be read or written in operation, must signed
+    if (err < 0)
+    {
+        char errorMessage[] = "Error: fstat didn't work.";
+        write(2, &errorMessage, sizeof(errorMessage));
+        return 1;
+    }
+    
+    //checkMem(allWords);
+    if(S_ISREG(fileThings.st_mode))
+    {
+        //printf("You get in here");
+        allWords = (char*)malloc(sizeOfFile);
+        //+1 - for space
+        //allocate it all at once
+        checkMem(allWords);
+        err = read(STDIN_FILENO, allWords, sizeOfFile);
+       
+    //printf("We are getting output:");
+    }
+    else
+    {
+        allWords = (char*)malloc(sizeof(char)*arbMem);
+        checkMem(allWords);
+        
+    
+    }
+    
+    //Note: if file grows, add more memory
+    while(read(STDIN_FILENO, &findChar, 1)>0)
+    {
+    
+        //check to see if file is still growing
+        if(a == arbMem)
+        {
+            arbMem *=2;
+            allWords = (char*)realloc((allWords), arbMem);
+            checkMem(allWords);
+            
+        }
+        if (findChar == ' ')
+        {
+            allWords[a] = findChar;
+            a+=1;
+            numOfWords+=1;
+            
+        }
+        else
+        {
+            allWords[a] = findChar;
+            a+=1;
+        }
+    }
+    if(a == arbMem)
+    {
+        arbMem *= 2;
+        allWords = (char*)realloc(allWords, sizeof(char)*arbMem);
+        checkMem(allWords);
+    }
+    //we need to add space to end of words
+    if (allWords[a-1] != ' ')
+    {
+        allWords[a] = ' ';
+        numOfWords+=1;
+    }
+    //printf("end of loop\n");
+    
+    //you'll need space for your SPACE
+
+    //we need to add space to end of words
+
+    newWords = (char**)malloc(sizeof(char*)*numOfWords);
+    checkMem(newWords);
+    
+    int c = 0;
+    while (c < numOfWords)
+    {
+        //we look at words until we get to the last word
+        newWords[c] = allWords;
+        
+        if (c+1 == numOfWords) break;
+        
+        while ((*allWords) != ' ')
+        {
+            allWords++;
+        }
+        c+=1;
+        allWords++;
+        
+    }
+    //get the words then sort them
+    //printf("Right before q sort\n");
+    //breakpoint here
+    //printf("After sort\n");
+    
+    qsort(newWords, numOfWords, sizeof(char*), frobFunc);
+    
+    //print the output
+    
+    //char Message[] = "Well you get past qsort\n";
+    //write(2, &Message, sizeof(Message));
+    int j = 0;
+    
+    
+    while(j < numOfWords)
+    {
+        //printf("You got in here \n");
+        write(1,&(*(newWords[j])),1);                        //STDIO FUNC
+        output(newWords[j]);                                 //STDIO FUNC
+        j+=1;
+    }
+    
+    
+/*    if(j == 0)
+    {
+        printf("You have no output\n");
+        return 1;
+    }
+ */
+ 
+    //essentially though, you'll only get here if you have errors
+    //empty input is already taken care of
+    //free all the memory at the end
+    free(newWords);
+    //we can't free oneWord and allWord
+    //printf("Well you got to the end of the code");
+    return 0;
+}
+//you must make executable before runing test cases oin shell
+//report errors!!!!
+//input, output, memory allocation failures
+//delete unused pointers, caused memory leak!!
+
+
+-----------------------------------------------------------------------
+
+tr2b.c
+
+//
+//  main.c
+//  tr2b
+//
+//  Created by Kaela Polnitz on 10/31/17.
+//  Copyright © 2017 Kaela Polnitz. All rights reserved.
+//
+
+//The tr utility shall copy the standard input to the standard
+//output with substitution or deletion of selected characters.
+//The options specified and the string1 and string2 operands
+//shall control translations that occur while copying characters
+//and single-character collating elements.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+
+
+//header includes putchar and setchar
+
+int main(int argc, char* argv[]) {
+    // insert code here...
+    //arg[0] == program
+    //arg[1] == from
+    //arg[2] == to
+    //  if not same length, do not even go, report error
+    //  if from has duplicates, error
+    //mixture of previous projects
+    //mapping type: from - abc and to - def, we want to
+    //replace characters with from
+    char* from = argv[1];
+    char* to = argv[2];
+    char currChar;
+
+    //check for same length
+    
+
+    //check for # of arguments
+    if(argc != 3)
+    {
+        printf("You have the wrong number of arguments! Can't be executed. \n");
+        return 1;
+        
+    }
+    //we will check for duplicate bytes in loop
+    
+    int lengthA = 0, lengthB = 0;
+    int i = 0;
+    while (from[i] != '\0')
+    {
+        lengthA++;
+        i++;
+    }
+    i = 0;
+    while(to[i] != '\0')
+    {
+        lengthB++;
+        i++;
+        
+    }
+    
+    if (lengthA != lengthB)
+    {
+        printf("Strings are NOT the same length! Can't be executed. \n");
+        return 1;
+    }
+    
+    for (int a = 0; a < lengthA; a++)
+    {
+        for (int b = 0; b < lengthB; b++)
+        {
+                if (a == b)
+                    continue;
+                if (from[a] == from[b])
+                {
+                    printf("Error, you have duplicate bytes! Can't be executed. \n");
+                    return 1;
+                }
+        }
+    }
+    bool isitMatch = false;
+    currChar = getchar();
+    int c = 0;
+    //be the same at this point
+        //if a character of translation, translate
+        //otherwise, just print the character
+    while (currChar != EOF) {
+  
+        while (from[c] != '\0')
+        {
+            isitMatch = false;
+            if (currChar == from[c])
+            {
+                putchar(to[c]);
+                isitMatch = true;
+                break;
+            }
+            c++;
+        }
+        
+        if(isitMatch == false)
+        {
+            putchar(currChar);
+        }
+        
+        currChar = getchar();
+    }
+    
+    return 0;
+}
+
+
+-----------------------------------------------------------------------
+
+tr2u.c
+
+//
+//  main.c
+//  tr2u
+//
+//  Created by Kaela Polnitz on 10/31/17.
+//  Copyright © 2017 Kaela Polnitz. All rights reserved.
+//
+//same as tr2b
+//look for duplicates, wrong number of arguments, etc.
+//from (what we want to translate), to (what it will be replaced with)
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+
+int main(int argc, const char * argv[]) {
+    const char* from;
+    const char* to;
+    from = argv[1];
+    to = argv[2];
+    
+
+    if(argc!=3)
+    {
+        fprintf(stderr, "Wrong number of arguments! \n");
+        return 1;
+    }
+
+    
+    
+    int lengthA = 0;
+    int lengthB = 0;
+    for (int k = 0;from[k] != '\0'; k++)
+    {
+        lengthA++;
+    }
+    
+    for (int l = 0; to[l] != '\0'; l++)
+    {
+        lengthB++;
+    }
+    //printf("Your lengths: \n");
+    //printf("%d", lengthA);
+    //printf("\n");
+    //printf("%d", lengthB);
+    //printf("\n");
+    if(lengthA != lengthB)
+    {
+        fprintf(stderr, "The lengths are not the same! \n");
+        return 1;
+        
+    }
+    
+    for (int i = 0; i < lengthA; i++)
+    {
+        for (int j = 0; i < lengthA; i++)
+        {
+            if (i == j)
+                j++;
+            if(from[i] == from[j])
+            {
+                fprintf(stderr, "Sorry, you have duplicates!\n");
+                return 1;
+            }
+        }
+    }
+    
+    char currChar;
+    bool match = false;
+    int k = 0;
+   
+    
+    //basically, if we find it in our 'key', we change it
+    //with what we want to turn it INTO
+    //if not, we are just going to print what we got from our scan
+    
+        while(read(STDIN_FILENO, &currChar, 1) != 0)
+        {
+            //check to see if it is something that can be translated
+            for(int iterator = 0; from[iterator] != '\0'; iterator++)
+            {
+                //search in the key
+            match = false;
+               if(currChar == from[iterator])
+               {
+                   match = true;
+                   write(STDOUT_FILENO, &to[iterator], 1);
+                   //we don't have duplicates so no point in looking
+                   //through loop
+                   break;
+               }
+            }
+            if(match == false)
+            {
+                write(STDOUT_FILENO, &currChar, 1);
+            }
+            
+        }
+
+    
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

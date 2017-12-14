@@ -1,0 +1,35 @@
+Answers to Q1-Q4
+
+A1:The line in question was a duplicate if we look at Brady's code on 
+the patch page. It also wasn't necessary to delete because 
+commands would fall through to the second line.
+
+A2:It could be a problem internationally as different countries would interpret 
+the format differently. Also, military-time/12-hour time could be confusing.
+
+A3: when running python ./randline.py /dev/null/, I received the following:
+Traceback (most recent call last):
+  File "./randline.py", line 72, in <module>
+    main()
+  File "./randline.py", line 66, in main
+    sys.stdout.write(generator.chooseline())
+  File "./randline.py", line 36, in chooseline
+    return random.choice(self.lines)
+  File "/usr/lib64/python2.6/random.py", line 261, in choice
+    return seq[int(self.random() * len(seq))]  
+    # raises IndexError if seq is empty
+IndexError: list index out of range
+
+This is because there are no numbers/data to work with (it's empty).
+
+A4: We can do:
+
+/usr/local/cs/bin/python3 ./randline.py /dev/null on lnxsrv09
+
+  File "./randline.py", line 67
+    except IOError as (errno, strerror):
+                      ^
+SyntaxError: invalid syntax
+
+We get a syntax error; there are subtle syntax differences
+between python 2 and python 3.

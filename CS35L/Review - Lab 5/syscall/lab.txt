@@ -1,0 +1,156 @@
+Our job is to create transliteration programs for both the buffered 
+and unbuffered situations (one will use getchar and putchar, 
+while the other will use read and write). We should note that 
+special commands will not be implemented. 
+The definition of tr is as follows:
+
+The tr utility shall copy the standard input to the standard output
+with substitution or deletion of selected characters. 
+The options specified and the string1 and string2 operands shall control 
+translations that occur while copying characters and single-character 
+collating elements.
+
+We then proceed by making a tr2b file and then a tr2u file. 
+We should note that our files should contain at least 5*10^6 bytes. 
+Then we will compare 
+them in the following situations:
+(Note: We were working on the local machine the entire time, so we are 
+going to copy the files onto the Linux server to use the strace command)
+
+492  scp /Users/kaelapolnitz/Desktop/tr2u.c classkae@lnxsrv09.seas.
+ucla.edu:~/Desktop
+493  scp /Users/kaelapolnitz/Desktop/tr2b.c classkae@lnxsrv09.seas.
+ucla.edu:~/Desktop
+
+Obtaining the executables also look a little bit different on Linux:
+  996  gcc -std=c99 -o  tr2b tr2b.c
+  997  gcc -std=c99 -o  tr2u tr2u.c
+They say use a file with at least 5,000,000 bytes. 
+To do this, we use the 
+following command:
+dd if=/dev/urandom of=file.txt bs=5000 count=1000 
+(5000*1000 = 5,000,000 bytes)
+(common way I found out how to do online).
+I also look for a way to check the system calls as I do 
+the preceding commands so I 
+go to man strike.
+I find this unique case:
+       -c          Count time, calls, and errors for each 
+system call and report a summary on program exit.  On Linux, 
+this attempts to show system time (CPU time  spent
+running in the kernel) independent of wall clock time.  
+If -c is used with -f or -F (below), only aggregate totals for 
+all traced processes are kept.
+
+I think it will work for 
+#3
+a) Copying one file to another:
+In tr2b,
+classkae@lnxsrv09 ~/Desktop]$ strace -o stracecopy -c cat big.txt 
+| ./tr2b 'abc''def' > somefile1a | cat stracecopy
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 29.61    0.000061          31         2           read
+ 29.61    0.000061          15         4           open
+ 13.59    0.000028           4         8           mmap
+ 11.17    0.000023           6         4           mprotect
+  4.85    0.000010          10         1           munmap
+  3.88    0.000008           2         5           fstat
+  2.43    0.000005           5         1         1 access
+  1.46    0.000003           3         1         1 write
+  1.46    0.000003           1         4           brk
+  0.97    0.000002           2         1           execve
+  0.49    0.000001           0         3           close
+  0.49    0.000001           1         1           arch_prctl
+  0.00    0.000000           0         1           fadvise64
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000206                    36         2 total
+
+In tr2u,
+classkae@lnxsrv09 ~/Desktop]$ strace -o stracecopy -c cat big.txt 
+| ./tr2u 'abc''def' > somefile1b | cat stracecopy
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 27.52    0.000071          36         2           read
+ 22.87    0.000059          15         4           open
+ 14.73    0.000038           5         8           mmap
+  8.53    0.000022           6         4           mprotect
+  6.98    0.000018           4         5           fstat
+  5.04    0.000013          13         1           munmap
+  5.04    0.000013           3         4           brk
+  3.49    0.000009           3         3           close
+  2.33    0.000006           6         1         1 write
+  1.94    0.000005           5         1           fadvise64
+  1.55    0.000004           4         1           arch_prctl
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000258                    36         2 total
+
+
+
+
+b) Copying a file to terminal:
+In tr2b,
+classkae@lnxsrv09 ~/Desktop]$ strace -o stracebout -c cat big.txt 
+| ./tr2b 'abc''def' | cat stracebout
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 26.83    0.000077          19         4           open
+ 22.65    0.000065          33         2           read
+ 15.68    0.000045           6         8           mmap
+ 11.50    0.000033           8         4           mprotect
+  6.97    0.000020           4         5           fstat
+  4.18    0.000012          12         1           munmap
+  4.18    0.000012           3         4           brk
+  2.79    0.000008           3         3           close
+  2.09    0.000006           6         1         1 write
+  1.74    0.000005           5         1           arch_prctl
+  1.39    0.000004           4         1           fadvise64
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000287                    36         2 total
+
+In tr2u,
+[classkae@lnxsrv09 ~/Desktop]$ strace -o stracebout -c cat big.txt 
+| ./tr2u 'abc''def' | cat stracebout
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 25.85    0.000076          19         4           open
+ 23.81    0.000070          35         2           read
+ 15.31    0.000045           6         8           mmap
+ 10.54    0.000031           8         4           mprotect
+  6.12    0.000018           4         5           fstat
+  5.44    0.000016           4         4           brk
+  4.42    0.000013          13         1           munmap
+  2.72    0.000008           3         3           close
+  2.72    0.000008           8         1         1 access
+  1.36    0.000004           4         1         1 write
+  1.02    0.000003           3         1           fadvise64
+  0.68    0.000002           2         1           arch_prctl
+  0.00    0.000000           0         1           execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000294                    36         2 total
+
+Overall, they both give the same amount calls (according to the calls 
+column.
+
+#4
+Now we will see which programs are faster with the time command:
+
+For tr2b,
+classkae@lnxsrv09 ~/Desktop]$ time cat big.txt | ./tr2b 'abc' 'def'
+
+real	0m0.058s
+user	0m0.003s
+sys	0m0.003s
+
+For tr2u,
+classkae@lnxsrv09 ~/Desktop]$ time cat big.txt | ./tr2u 'abc' 'def'
+real	0m7.006s
+user	0m0.336s
+sys	0m6.560s
+
+It seems that tr2b is a little bit faster in the tests we have been 
+doing. Results have varied, but this is the general idea.

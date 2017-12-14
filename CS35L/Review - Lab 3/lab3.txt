@@ -1,0 +1,52 @@
+I started off by grabbing coreutils with Wget.
+
+I compiled and installed Coreutils in a folder called 'temp':
+tar -xzf coreutils-7.6.tar.gz
+This restores, unzips and readies the location for installation
+
+We use ls -l in temp to  discover that the 
+coreutils-7.6 we unzipped contains a directory.
+We see there is a document called INSTALL to read (open INSTALL)
+They tell us one of the best ways to install is using the following:
+./configure --prefix=/u/eng/class/classkae/Desktop/temp 
+Then we use make and make install to complete the process
+
+Now we are going to replicate the bug:
+Navigate to temp folder (this is where the coreutils bin is)
+(Note: I eventually moved the bin to inside the 
+coreutils folder after)
+We run ./ls -l /bin/bash within  ~/Desktop/temp/coreutils-7.6/bin 
+and we notice that the bug is present:
+-rwxr-xr-x 1 root root 960632 2017-08-03 06:36 /bin/bash
+
+Now we are going to apply Brady's patch in Emacs:
+We navigate back to the original Coreutils folder
+After we will add the patch (named patch) through copy+paste
+touch patch
+vi patch
+patch -p1 < patch
+
+After doing this, we will use make to solidify changes.
+After, we notice that ./ls -l produces the correct output:
+Example (./ls -l in temp/coreutils-7.6/src)
+-rw-r--r-- 1 classkae class  13056 Oct 17 08:39 yes.o
+
+Running make:
+We can see that less compiling/building is done.
+When we run make -d in coreutils, we see that there 
+are a lot of files 
+that have no 'need to make'.
+It shows what prequisites needed to be/were changed.
+
+We create an old and new file:
+touch new_file
+touch -t 198403050133 old_file
+
+In the ~/temp/bin we get (./ls -l):
+-rw-r--r-- 1 classkae class      0 2017-10-17 11:55 new_file
+-rw-r--r-- 1 classkae class      0 1984-03-05 01:33 old_file
+
+In ~/temp/src we get (./ls - l):
+-rw-r--r-- 1 classkae class      0 Oct 17 12:04 new
+-rw-r--r-- 1 classkae class      0 Mar  5  1984 old
+

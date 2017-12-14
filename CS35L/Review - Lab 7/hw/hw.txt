@@ -1,0 +1,23 @@
+1. To answer to the beginning of the question, yes it can be secure. Even
+though a person might have been able to observe the public key, 
+it would still be fairly difficult. The text is deciphered with a private
+key, which is only accessible locally on the end of the remote server 
+(the server asking for the password).
+1)
+In this situation, it would be insecure because they could send 
+the exact text that would be decrypted. Essentially, it would
+be as if they typed in the same keystrokes to begin with.
+
+2)
+This connection would also be insecure because having access to the other 
+end of the USB would give them the power of being the root user. As a
+result, they could obtain all of your keys, IP addresses, set passwords, etc.
+
+ 
+2. --verify isn't efficient in checking for that tar file because it only
+checks the modification of the tar file (signature). It does not give
+us access to who created and sent the files. In fixing this problem,
+we can introduce an outside party that can check the signatures for 
+us. They can look at the movement of the file (who sent the file, who created
+the file, etc.)
+

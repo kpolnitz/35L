@@ -1,0 +1,1344 @@
+LAB 6
+
+log.txt 
+
+First, I started off by checking if I am using a new enough version of sort
+by using the sort --version command (on the Linux server).
+I get the following:
+
+sort (GNU coreutils) 8.22
+Copyright (C) 2013 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by Mike Haertel and Paul Eggert.
+
+Now we will measure its performance with the multithreaded sort.
+First, I will make a file with 1*10^7 random "single-precision" floating
+point numbers. I did this by using the od command (as mentioned in 
+the assignment page). We look at the od command page and look for the 
+arguments that are the most suitable. We find the following: 
+
+-N  count
+Format no more than count bytes of input. By default, 
+count shall be interpreted as a decimal number. With a
+leading 0x or 0X, count shall be interpreted as a 
+hexadecimal number; otherwise, with a leading '0', 
+it shall be interpreted as an octal number. If count 
+bytes of input (after successfully skipping, if -j skip 
+is specified) are not available, it shall not be considered 
+an error; the od utility shall format the input that is available.
+
+I decided to use the following command:
+(Said to use sed and tr commands)
+od -tf -N 80000000 < /dev/urandom | tr -s ' ' '\n' | sed '/^$/d' > rand.txt &
+I ran in the background because processing took a while.
+
+After, I decided to use the time command, as mentioned in the assignment.
+time -p sort -g < rand.txt > /dev/null
+I get the following:
+real 46.12
+user 246.48
+sys 1.77
+
+Next I will invoke sort --parallel with the different thread counts:
+
+time -p sort -g --parallel=1 rand.txt > /dev/null 
+real 240.10
+user 238.94
+sys 1.16
+time -p sort -g --parallel=2 rand.txt > /dev/null 
+real 126.21
+user 240.56
+sys 1.20
+time -p sort -g --parallel=4 rand.txt > /dev/null 
+real 73.07
+user 252.53
+sys 0.55
+time -p sort -g --parallel=8 rand.txt > /dev/null 
+real 46.81
+user 258.42
+sys 2.41
+
+We see a decrease in real time because of the fact that 
+the commands are split within several CPUs, as a result, 
+we can split up the work and move faster through the command.
+We also know that after a certain number of threads, the time 
+in performance tends to be less maximized (saving less time).
+This is probably related to the fact that performance is maximized 
+up to the number of CPUs (i.e you can have the most speed with 4 threads 
+on 4 processors, but any more threads after that, it is not as fast).
+
+If we use cat /proc/cpuinfo | grep processor, we can see how many processors
+we have:
+processor	: 0
+processor	: 1
+processor	: 2
+processor	: 3
+processor	: 4
+processor	: 5
+processor	: 6
+processor	: 7
+processor	: 8
+processor	: 9
+processor	: 10
+processor	: 11
+processor	: 12
+processor	: 13
+processor	: 14
+processor	: 15
+processor	: 16
+processor	: 17
+processor	: 18
+processor	: 19
+processor	: 20
+processor	: 21
+processor	: 22
+processor	: 23
+processor	: 24
+processor	: 25
+processor	: 26
+processor	: 27
+processor	: 28
+processor	: 29
+processor	: 30
+processor	: 31
+
+So we have 32 processors. We can compare 32 threads and 36 threads.
+What should happen is that the 36 threads should not be as fast
+as using 32 threads:
+
+For 32 threads we get:
+real 36.53
+user 410.84
+sys 2.16
+
+For 36, we get:
+real 46.58
+user 361.75
+sys 3.70
+
+We can see that the idea mentioned above stands with this output.
+
+
+--------------------------------------------------------------------------
+
+make-log.txt
+
+rm -f *.o *.tmp 1-test.ppm 2-test.ppm 4-test.ppm 8-test.ppm srt srt.tgz
+gcc -std=gnu11 -g -O2 -Wall -Wextra -Wno-unused-parameter   -c -o main.o main.c
+main.c: In function ‘useThreads’:
+main.c:196:21: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+     int threadNum = (int)numThreads;
+                     ^
+main.c: In function ‘main’:
+main.c:295:64: warning: cast to pointer from integer of different size [-Wint-to-pointer-cast]
+    retur = pthread_create(&thread[i], NULL, useThreads, (void*)i);
+                                                                ^
+gcc -std=gnu11 -g -O2 -Wall -Wextra -Wno-unused-parameter   -c -o raymath.o raymath.c
+gcc -std=gnu11 -g -O2 -Wall -Wextra -Wno-unused-parameter   -c -o shaders.o shaders.c
+gcc -std=gnu11 -g -O2 -Wall -Wextra -Wno-unused-parameter -o srt main.o raymath.o shaders.o -lm -lpthread
+time ./srt 1-test.ppm >1-test.ppm.tmp
+
+real	0m45.188s
+user	0m45.182s
+sys	0m0.001s
+mv 1-test.ppm.tmp 1-test.ppm
+time ./srt 2-test.ppm >2-test.ppm.tmp
+
+real	0m22.731s
+user	0m45.030s
+sys	0m0.009s
+mv 2-test.ppm.tmp 2-test.ppm
+time ./srt 4-test.ppm >4-test.ppm.tmp
+
+real	0m11.266s
+user	0m44.735s
+sys	0m0.002s
+mv 4-test.ppm.tmp 4-test.ppm
+time ./srt 8-test.ppm >8-test.ppm.tmp
+
+real	0m5.774s
+user	0m44.812s
+sys	0m0.004s
+mv 8-test.ppm.tmp 8-test.ppm
+for file in 1-test.ppm 2-test.ppm 4-test.ppm 8-test.ppm; do \
+  diff -u baseline.ppm $file || exit; \
+done
+
+--------------------------------------------------------------------------
+
+readme.txt
+
+For the most part, it was easy to infer some of the changes
+that had to be made based off of the earlier syntax 
+of the main.c code.
+ 
+Some of the problems I ran into involved variable errors,
+in using vi and also having to create functions, you need
+to make sure that everything is accessible.
+With this idea, I also had problems running my code from
+cutting/replacing parts of the main function. Some 
+problems that I thought were extremely problematic were 
+fixed by elementary methods of tracing over the code
+carefully.
+
+Another problem I ran into was the issue of the precision
+of the last coordinate of the output. I would consistently
+get the right coordinates, but my 255 (for example) would
+display as 255.000000, which of course was a problem for
+creating the diff files. I realized that it happened as
+a result of a while loop I had, in addition to there
+being a typo in my print command. 
+
+This also resolved another error I had: I would
+consistently get a make error for check. I do believe
+that this was because the diff file was really far off
+and misaligned.
+
+Sometimes, it was also hard to pinpoint specific issues if 
+my program just caused errors in make clean check.
+It was especially hard trying to figure out this problem
+because it was not an easy task to try to build an executable
+that caters to all of the special tags that main.c needed
+(lm, gammas, etc.). I ultimately looked to the gcc commands
+of the Makefile and sometimes implemented them separately
+on their own to find specific lines of codes that were 
+problematic.
+
+In regards to the implementation of the pthread commands,
+they were covered thoroughly in class with adequate examples
+that made it easy to mimic in creating the main.c file.
+
+My conclusion that I arrived at is that multithreading is 
+an efficient alternative that can minimize time-wasted
+in running a program. We can see that with some of the
+time output we got:
+
+time ./srt 1-test.ppm >1-test.ppm.tmp
+
+real	0m45.188s
+user	0m45.182s
+sys	0m0.001s
+
+time ./srt 2-test.ppm >2-test.ppm.tmp
+
+real	0m22.731s
+user	0m45.030s
+sys	0m0.009s
+
+time ./srt 4-test.ppm >4-test.ppm.tmp
+
+real	0m11.266s
+user	0m44.735s
+sys	0m0.002s
+
+time ./srt 8-test.ppm >8-test.ppm.tmp
+
+real	0m5.774s
+user	0m44.812s
+sys	0m0.004s
+
+With 8 threads, we were able to cut the performance time by almost 7/8 
+of our time with 1 thread (in real execution time). 
+Faster processing allows for other processes to start after. 
+Overall, we can see that threads could
+improve the overall efficiency of a program.
+
+
+--------------------------------------------------------------------------
+within srt.tgz
+
+--------------------------------------------------------------------------
+
+main.c
+
+//
+//  main.c
+//  srt
+//
+//  Created by vector on 11/2/10.
+//  Copyright (c) 2010 Brian F. Allen.
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include "raymath.h"
+#include "shaders.h"
+#include <pthread.h> //---CHANGE---
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <math.h>
+
+
+//modifying ray tracer code
+//want it to be multithreaded, run faster on multicore machine
+//link with -lpthread library
+//we need to use nthreads variable 
+//currently errors unless nthreads == 1
+//use pthread_create and pthread_join 
+//we can sue malloc if we need to 
+//output of 1-test.ppm should be identical to baseline.ppm
+//can be displayed in GIMP, etc.
+//scene_t scene;
+static double dirs[6][3] =
+{ {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
+static const int opposites[] = { 1, 0, 3, 2, 5, 4 };
+
+
+static void
+add_sphereflake( scene_t* scene, int sphere_id, int parent_id, int dir,
+		 double ratio, int recursion_level )
+{
+    sphere_t* parent = &scene->spheres[parent_id];
+    sphere_t* child = &scene->spheres[sphere_id];
+
+    /* start at parents origin */
+    mul( child->org, dirs[dir], (1.+ratio)*parent->rad );
+    add( child->org, child->org, parent->org );
+    child->rad = parent->rad * ratio;
+    copy( child->color, parent->color );
+    child->shader = parent->shader;
+    scene->sphere_count++;
+}
+
+static int
+recursive_add_sphereflake( scene_t* scene, int parent_id, int parent_dir,
+			   int sphere_id, int dir,
+			   int recursion_level, int recursion_limit )
+{
+    const double ratio = 0.35;
+
+    add_sphereflake( scene, sphere_id, parent_id, dir, ratio, recursion_level );
+    if( recursion_level > recursion_limit )
+    {
+        return sphere_id + 1;
+    }
+
+    /* six children, one at each cardinal point */
+    parent_id = sphere_id;
+    sphere_id = sphere_id + 1;
+    for( int child_dir=0; child_dir<6; ++child_dir )
+    {
+        /* skip making spheres inside parent */
+        if( parent_dir == opposites[child_dir] ) continue;
+        sphere_id = recursive_add_sphereflake( scene, parent_id, parent_dir,
+                                               sphere_id, child_dir,
+                                               recursion_level + 1,
+                                               recursion_limit );
+    }
+    return sphere_id;
+}
+
+static scene_t
+create_sphereflake_scene( int recursion_limit )
+{
+    scene_t scene;
+    Vec3 color;
+    sphere_t* sphere;
+
+    init_scene( &scene );
+
+    // Pantone UC Gold 122
+    add_light( &scene, 2, 5, 0, 0.996, 0.733, 0.212 );
+
+    // Pantone UCLA Blue (50,132,191)
+    add_light( &scene, -5, 3, -5, 0.196, 0.517, 0.749 );
+
+    int max_sphere_count = 2 + powl( 6, recursion_limit + 2 );
+    scene.spheres = realloc( scene.spheres,
+                             max_sphere_count*sizeof( sphere_t ) );
+    if( !scene.spheres )
+    {
+        fprintf( stderr, "Failed to get memory for sphereflake.  aborting.\n" );
+        exit( -1 );
+    }
+
+//    sphere = &(scene.spheres[0]);
+//    set( sphere->org, -0.5, -1.0, 0 );
+//    sphere->rad = 0.75;
+//    set( color, 0.85, 0.25, 0.25 );
+//    copy( sphere->color, color );
+//    sphere->shader = mirror_shader;
+
+
+    /* center sphere is special, child inherent shader and color */
+    sphere = &(scene.spheres[0]);
+    scene.sphere_count++;
+    set( sphere->org, 0, -1, 0 );
+    sphere->rad = 0.75;
+    set( color, 0.75, 0.75, 0.75 );
+    copy( sphere->color, color );
+    sphere->shader = mirror_shader;
+    recursive_add_sphereflake( &scene,
+                               0, /* parent is the first sphere */
+                               -1, /* -1 means no dir, make all children */
+                               1, /* next free sphere index */
+                               2, /* starting dir */
+                               0, /* starting recursion level */
+                               recursion_limit );
+
+    return scene;
+}
+
+static void
+free_scene( scene_t* arg )
+{
+    free( arg->lights );
+    arg->light_count = 0;
+    free( arg->spheres );
+    arg->sphere_count = 0;
+}
+
+/******
+ * Constants that have a large effect on performance */
+
+/* how many levels to generate spheres */
+enum { sphereflake_recursion = 3 };
+
+/* output image size */
+enum { height = 131 };
+enum { width = 131 };
+//RGC can be described in 3 numbers 
+/* antialiasing samples, more is higher quality, 0 for no AA */
+enum { halfSamples = 4 };
+/******/
+
+/* color depth to output for ppm */
+enum { max_color = 255 };
+
+/* z value for ray */
+enum { z = 1 };
+float scaledVal[height][width][3];
+scene_t scene;
+int nthreads;
+//scene_t scene;
+//CHANGE-- we need scene to be declared globally so we can
+//use with the useThreads func
+
+//function used for multithreading
+ void *useThreads(void *numThreads)
+ {
+    Vec3 camera_pos;
+    set( camera_pos, 0., 0., -4. );
+    Vec3 camera_dir;
+    set( camera_dir, 0., 0., 1. );
+    const double camera_fov = 75.0 * (PI/180.0);
+    Vec3 bg_color;
+    set( bg_color, 0.8, 0.8, 1 );
+
+    const double pixel_dx = tan( 0.5*camera_fov ) / ((double)width*0.5);
+    const double pixel_dy = tan( 0.5*camera_fov ) / ((double)height*0.5);
+    const double subsample_dx
+        = halfSamples  ? pixel_dx / ((double)halfSamples*2.0)
+                       : pixel_dx;
+    const double subsample_dy
+        = halfSamples ? pixel_dy / ((double)halfSamples*2.0)
+                      : pixel_dy;
+	
+ 
+    int threadNum = (int)numThreads;
+ //divides it between threads 
+    for ( int px=threadNum; px<width; px += nthreads )
+    {
+        const double x = pixel_dx * ((double)( px-(width/2) ));       	
+	for( int py=0; py<height; ++py )
+        {
+            const double y = pixel_dy * ((double)( py-(height/2) ));
+            Vec3 pixel_color;
+            set( pixel_color, 0, 0, 0 );
+
+            for( int xs=-halfSamples; xs<=halfSamples; ++xs )
+            {
+                for( int ys=-halfSamples; ys<=halfSamples; ++ys )
+                {
+                    double subx = x + ((double)xs)*subsample_dx;
+                    double suby = y + ((double)ys)*subsample_dy;
+
+                    /* construct the ray coming out of the camera, through
+ *                      * the screen at (subx,suby)
+ *                                           */
+                    ray_t pixel_ray;
+                    copy( pixel_ray.org, camera_pos );
+                    Vec3 pixel_target;
+                    set( pixel_target, subx, suby, z );
+                    sub( pixel_ray.dir, pixel_target, camera_pos );
+                    norm( pixel_ray.dir, pixel_ray.dir );
+
+                    Vec3 sample_color;
+                    copy( sample_color, bg_color );
+                    /* trace the ray from the camera that
+ *                      * passes through this pixel */
+                    trace( &scene, sample_color, &pixel_ray, 0 );
+                    /* sum color for subpixel AA */
+                    add( pixel_color, pixel_color, sample_color );
+                }
+            }
+
+            /* at this point, have accumulated (2*halfSamples)^2 samples,
+ *              * so need to average out the final pixel color
+ *                           */
+            if( halfSamples )
+            {
+                mul( pixel_color, pixel_color,
+                     (1.0/( 4.0 * halfSamples * halfSamples ) ) );
+            }
+
+            /* done, final floating point color values are in pixel_color */
+            float scaled_color[3];
+            scaled_color[0] = gamma( pixel_color[0] ) * max_color;
+            scaled_color[1] = gamma( pixel_color[1] ) * max_color;
+            scaled_color[2] = gamma( pixel_color[2] ) * max_color;
+
+            /* enforce caps, replace with real gamma */
+            for( int i=0; i<3; i++)
+                scaled_color[i] = max( min(scaled_color[i], 255), 0);
+
+            /* write this pixel out to disk. ppm is forgiving about whitespace,
+ *              * but has a maximum of 70 chars/line, so use one line per pixel
+ *                           */
+            
+                    scaledVal[px][py][0] = scaled_color[0];
+		    scaledVal[px][py][1] = scaled_color[1];
+	            scaledVal[px][py][2] = scaled_color[2];	
+		   
+	//scale into a 3d array 
+
+        }
+    }
+	return NULL;	
+} 
+
+int
+main( int argc, char **argv )
+{
+    //scene_t scene;
+    nthreads = argc == 2 ? atoi( argv[1] ) : 0;
+    pthread_t thread[nthreads];
+    
+    
+    if( nthreads < 1 )
+    {
+      fprintf( stderr, "%s: usage: %s NTHREADS\n", argv[0], argv[0] );
+      return 1;
+    }
+
+    //---CHANGE---
+    //We deleted the code that said multithreading wasn't supported.
+    scene = create_sphereflake_scene( sphereflake_recursion );
+
+    /* Write the image format header */
+    /* P3 is an ASCII-formatted, color, PPM file */
+    printf( "P3\n%d %d\n%d\n", width, height, max_color );
+    printf( "# Rendering scene with %d spheres and %d lights\n",
+            scene.sphere_count,
+            scene.light_count );
+    int retur, i;
+	for (i = 0; i < nthreads; ++i)
+	 {
+	  retur = pthread_create(&thread[i], NULL, useThreads, (void*)i);
+	   if (retur)
+	   {
+                   printf("Error: Could not create thread. \n");
+	           return 1;
+           }
+         }
+
+
+//main will not exit, will wait for the other threads to finish
+        for (i = 0; i < nthreads; ++i)
+	{
+            retur = pthread_join(thread[i],NULL);
+	     if (retur)
+	     {
+	        printf("Error: Threads could not be freed. \n");
+		return 1;	
+	     }
+	}
+	int w = 0;
+	int h = 0;
+	for(w = 0; w < width; ++w)
+	{
+		for(h = 0; h < height; ++h)
+		{
+                    //loop with these float values
+                    printf( "%.0f %.0f %.0f\n", 
+		    scaledVal[w][h][0], 
+		    scaledVal[w][h][1], 
+                    scaledVal[w][h][2] );
+                    //iterate through every pixel/bit of image 
+                   
+            	}
+            printf("\n");
+            
+        }
+        free_scene( &scene );
+    
+        if( ferror( stdout ) || fclose( stdout ) != 0 )
+        {
+            fprintf( stderr, "Output error\n" );
+            return 1;
+        }
+   
+        return 0;
+
+}
+    //---CHANGE--- 
+    //adding the array of threads 
+    //add the IDs for the threads
+    //--CHANGE---
+    //We are adding loop for creating threads
+    //we are also adding a loop for pthreadjoin
+    //we will also have a func for using the threads
+    //variables were globalized to use with our function and main function
+    //takes scaled vals and places them into a 3d array that can map image values 
+
+
+--------------------------------------------------------------------------
+Makefile
+
+#  Copyright (c) 2010 Brian F. Allen.
+#  Copyright 2016 Paul Eggert.
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#we need to allow execution with -lpthread
+CC = gcc
+CFLAGS = -std=gnu11 -g -O2 -Wall -Wextra -Wno-unused-parameter
+LDLIBS = -lm -lpthread
+
+all: srt
+
+srt_objects = main.o raymath.o shaders.o
+srt: $(srt_objects)
+	$(CC) $(CFLAGS) -o $@ $(srt_objects) $(LDLIBS)
+
+main.o raymath.o: raymath.h
+main.o shaders.o: shaders.h
+
+tests = 1-test.ppm 2-test.ppm 4-test.ppm 8-test.ppm
+check: baseline.ppm $(tests)
+	for file in $(tests); do \
+	  diff -u baseline.ppm $$file || exit; \
+	done
+$(tests): srt
+	time ./srt $@ >$@.tmp
+	mv $@.tmp $@
+
+dist: srt.tgz
+sources = COPYING Makefile main.c raymath.c raymath.h shaders.c shaders.h \
+   baseline.ppm
+srt.tgz: $(sources)
+	tar cf - --transform='s|^|srt/|' $(sources) | gzip -9 >$@
+
+clean:
+	rm -f *.o *.tmp $(tests) srt srt.tgz
+
+--------------------------------------------------------------------------
+
+raymath.c 
+
+//  Created by vector on 11/2/10.
+//  Copyright (c) 2010 Brian F. Allen.
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include "raymath.h"
+
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+const long double PI = 3.1415926535897932384626433832795028841968;
+const double dEpsilon = 1e-12;     /* for ray-intersect test */
+const double dInfinity = 1.0/0.0;
+
+
+#define VEC( OP, out, a, b ) \
+  for( int i=0; i<3; ++i ) (out)[i] = (a)[i] OP (b)[i]
+
+void zero( Vec3 out )
+{
+    memset( out, 0, sizeof (Vec3) );
+}
+
+void set( Vec3 out, double x, double y, double z )
+{
+    out[0] = x; out[1] = y; out[2] = z;
+}
+
+void copy( Vec3 to, Vec3 from )
+{
+    memcpy( to, from, sizeof (Vec3) );
+}
+
+void add( Vec3 out, Vec3 a, Vec3 b )
+{
+	VEC( +, out, a, b );
+}
+void sub( Vec3 out, Vec3 a, Vec3 b )
+{
+	VEC( -, out, a, b );
+}
+void mul( Vec3 out, Vec3 a, double s )
+{
+	for( int i=0; i<3; ++i )
+	{
+		out[i] = a[i] * s;
+	}
+}
+double dot( Vec3 a, Vec3 b )
+{
+	return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+}
+double len( Vec3 a )
+{
+    return sqrt( dot( a,a ) );
+}
+
+void cross( Vec3 out, Vec3 a, Vec3 b )
+{
+	out[0] = a[1]*b[2] - a[2]*b[1];
+	out[1] = a[2]*b[0] - a[0]*b[2];
+	out[2] = a[0]*b[1] - a[1]*b[0];
+}
+void norm( Vec3 out, Vec3 a )
+{
+	double recipLen = 1.0/sqrt( dot(a,a) );
+	for( int i=0;i<3;++i )
+	{
+		out[i] = a[i] * recipLen;
+	}
+}
+
+void reflect( Vec3 out, Vec3 incoming, Vec3 surf_norm )
+{
+    Vec3 n;
+    norm( n, surf_norm );
+    Vec3 v;
+    norm( v, incoming );
+    Vec3 norm_comp;
+    mul( norm_comp, n, -2.0 * dot( v, n ) );
+    add( out, v, norm_comp );
+    norm( out, out );
+}
+
+/*
+ * Sphere
+ */
+void sphere_normal( Vec3 out, sphere_t* s, Vec3 dir )
+{
+	sub( out, dir, s->org );
+	mul( out, out, 1.0/(s->rad) );
+}
+
+double sphere_intersect( sphere_t* sphere, ray_t* ray )
+{
+	Vec3 v;
+	sub( v, sphere->org, ray->org );
+	double b = dot( ray->dir, v );
+	double disc = b*b - dot(v,v) + sphere->rad*sphere->rad;
+	if( disc < 0.0 )
+	{
+		return dInfinity;
+	}
+	double d = sqrt( disc );
+	double t1 = b-d;
+	double t2 = b+d;
+	if( t2 < 0.0 )
+	{
+		return dInfinity;
+	}
+	else
+	{
+		return( t1 > 0.0 ? t1 : t2 );
+	}
+}
+
+void sphere_copy( sphere_t* to, sphere_t* from )
+{
+	copy ( to->org, from->org );
+	to->rad = from->rad;
+}
+
+
+void init_scene( scene_t* scene )
+{
+    scene->sphere_count = 0;
+    scene->spheres = NULL;
+    scene->light_count = 0;
+    scene->lights = NULL;
+}
+
+sphere_t* add_sphere( scene_t* scene,
+                      double x, double y, double z,
+                      double radius,
+                      double r, double g, double b )
+{
+    (scene->sphere_count)++;
+    scene->spheres = realloc( scene->spheres,
+                              sizeof(sphere_t)*scene->sphere_count );
+    sphere_t* sphere = &(scene->spheres[(scene->sphere_count) - 1]);
+    set( sphere->org, x, y, z );
+    sphere->rad = radius;
+    set( sphere->color, r, g, b );
+    sphere->shader = NULL;
+    return sphere;
+}
+
+light_t* add_light( scene_t* scene, double x, double y, double z,
+                    double r, double g, double b )
+{
+    (scene->light_count)++;
+    scene->lights = realloc( scene->lights,
+                             sizeof(light_t)*scene->light_count );
+    light_t* light = &(scene->lights[ scene->light_count - 1 ]);
+    set( light->pos, x, y, z );
+    set( light->color, r, g, b );
+    return light;
+}
+
+double gamma( double raw )
+{
+    /* encode with a gamma of 0.45 (according to wikipedia */
+    /* TODO */
+    return raw;
+}
+
+/*
+ * Test functions
+ */
+int is_close( double a, double b )
+{
+    return fabs( a - b ) < 1e-5;
+}
+
+
+--------------------------------------------------------------------------
+raymath.h
+
+#ifndef SRT_RAYMATH_H
+#define SRT_RAYMATH_H
+//
+//  math.h
+//  srt
+//
+//  Created by vector on 11/2/10.
+//  Copyright (c) 2010 Brian F. Allen. All rights reserved.
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
+extern const long double PI;
+
+extern const double dEpsilon;     /* for ray-intersect test */
+extern const double dInfinity;
+
+typedef double Vec3[3];
+
+
+typedef struct sphere_struct sphere_t;
+
+
+typedef struct
+{
+	Vec3 org;    /* origin */
+	Vec3 dir;    /* direction */
+} ray_t;
+
+
+typedef struct
+{
+    Vec3 pos;
+    Vec3 color;
+} light_t;
+
+typedef struct
+{
+    light_t* lights;
+    int light_count;
+    sphere_t* spheres;
+    int sphere_count;
+} scene_t;
+
+void init_scene( scene_t* scene );
+
+sphere_t* add_sphere( scene_t* scene,
+                      double x, double y, double z,
+                      double radius,
+                      double r, double g, double b );
+
+light_t* add_light( scene_t* scene,
+                    double x, double y, double z,
+                    double r, double g, double b );
+
+
+
+typedef void (*shader_func_t)( Vec3 out_color,
+                               scene_t* scene,
+                               sphere_t* sphere,
+                               ray_t* original_ray,
+                               double hit_on_ray,
+                               int recursion_depth );
+
+struct sphere_struct
+{
+	Vec3          org;    /* center */
+	double        rad;    /* radius */
+    Vec3          color;  /* surface color */
+    shader_func_t shader; /* surface shader */
+};
+
+/* holds the normal and distance away
+ * that an intersection was found.
+ */
+typedef struct
+{
+    Vec3   n;    /* normal */
+	double t;    /* distance */
+} hit_t;
+
+void   zero( Vec3 out );
+void   set( Vec3 out, double x, double y, double z );
+void   copy( Vec3 to, Vec3 from );
+void   add( Vec3 out, Vec3 a, Vec3 b );
+void   sub( Vec3 out, Vec3 a, Vec3 b );
+void   mul( Vec3 out, Vec3 a, double s );
+double dot( Vec3 a, Vec3 b );
+double len( Vec3 a );
+void   cross( Vec3 out, Vec3 a, Vec3 b );
+void   norm( Vec3 out, Vec3 a );
+void   reflect( Vec3 out, Vec3 incoming, Vec3 surf_norm );
+void   sphere_normal( Vec3 out, sphere_t* s, Vec3 dir );
+
+double gamma( double raw );
+
+/* returns the distance along ray of first interestion with sphere
+ * post: return is positive (since it's a ray and not a line)
+ */
+double sphere_intersect( sphere_t* sphere, ray_t* ray );
+
+void   sphere_copy( sphere_t* to, sphere_t* from );
+
+
+/*
+ * Test functions
+ */
+int is_close( double a, double b );
+
+#endif
+
+
+--------------------------------------------------------------------------
+shaders.c
+
+//
+//  shaders.c
+//  srt
+//
+//  Created by vector on 11/2/10.
+//  Copyright (c) 2010 Brian F. Allen. All rights reserved.
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include "shaders.h"
+#include <assert.h>
+#include <math.h>
+
+
+/*
+ * trace ray into the scene.  if it hits an object,
+ * run the object's shader to figure out the out_color
+ * can be recursive, so may want to stop at a given recursion_depth
+ */
+void trace( scene_t* scene, Vec3 out_color, ray_t* ray, int recursion_depth )
+{
+    double closest_depth = dInfinity;
+    int closest_index = -1;
+    for( int i=0; i<scene->sphere_count; ++i )
+    {
+        double depth = sphere_intersect( &(scene->spheres[i]), ray );
+        if( depth < closest_depth )
+        {
+            closest_depth = depth;
+            closest_index = i;
+        }
+    }
+    if( closest_index != -1 && scene->spheres[closest_index].shader )
+    {
+        /* hitting sphere[closest_index] */
+        /* call the sphere's shading function */
+        (*(scene->spheres[closest_index].shader))( out_color,
+                scene, &(scene->spheres[closest_index]),
+                ray, closest_depth, recursion_depth + 1 );
+    }
+}
+
+/*
+ ****************************************************
+ * Helper functions for shaders
+ ****************************************************
+ */
+
+/* does ray hit some other scene object between the surf and light?
+ */
+static int
+is_segment_blocked( scene_t* scene, sphere_t* curr_sphere,
+		    ray_t* ray, double depth_to_light )
+{
+    for( int i=0; i<scene->sphere_count; ++i )
+    {
+        if( &(scene->spheres[i]) == curr_sphere )
+        {
+            continue; /* ignore self-shadowing (these are convex objects) */
+        }
+        double depth_to_sphere = sphere_intersect( &(scene->spheres[i]), ray );
+        if( depth_to_light > depth_to_sphere )
+        {
+            return 1; /* blocked */
+        }
+    }
+    return 0;
+}
+
+static void
+surf_pos_and_normal( Vec3 out_surf_pos,
+		     Vec3 out_surf_norm,
+		     sphere_t* sphere,
+		     ray_t* original_ray,
+		     double hit_on_ray )
+{
+    mul( out_surf_pos, original_ray->dir, hit_on_ray );
+    add( out_surf_pos, original_ray->org, out_surf_pos );
+    sub( out_surf_norm, out_surf_pos, sphere->org );
+    norm( out_surf_norm, out_surf_norm );
+}
+
+
+
+/*
+ ****************************************************
+ * Shaders
+ ****************************************************
+ */
+
+
+/* every point on the sphere is of a single color, no matter
+ * what lighting or where the viewer is
+ */
+void constant_shader( Vec3 out_color,
+                     scene_t* scene,
+                     sphere_t* sphere,
+                     ray_t* original_ray,
+                     double hit_on_ray,
+                     int recursion_depth )
+{
+    copy( out_color, sphere->color );
+}
+
+
+
+/* "diffuse" shader where the color
+ * of the ray depends only on the hit sphere
+ * and the light.
+ * The surface is brighter the closer
+ * the surface normal is to the direction of the light.
+ * The color of the surface doesn't depend at all on the
+ * direction of the incoming ray.
+ */
+void lambertian_shader( Vec3 out_color,
+                       scene_t* scene,
+                       sphere_t* sphere,
+                       ray_t* original_ray,
+                       double hit_on_ray,
+                       int recursion_depth )
+{
+    /* ensure the ray has a normalized dir */
+    assert( is_close( 1, dot( original_ray->dir, original_ray->dir ) ) );
+    assert( hit_on_ray >= 0 );
+    set( out_color, 0,0,0 );
+
+    Vec3 surf_pos;
+    Vec3 surf_norm;
+    surf_pos_and_normal( surf_pos, surf_norm, sphere, original_ray, hit_on_ray );
+
+    /* for each light, intensity = surface normal dot light direction.
+     */
+    for( int i=0; i<scene->light_count; ++i )
+    {
+        /* compute direction and distance from surface to light */
+        light_t* light = &(scene->lights[i]);
+        ray_t surf_to_light;
+        copy( surf_to_light.org, surf_pos );
+        sub( surf_to_light.dir, light->pos, surf_pos );
+        double depth_to_light = len( surf_to_light.dir );
+        norm( surf_to_light.dir, surf_to_light.dir );
+        if( is_segment_blocked( scene, sphere, &surf_to_light, depth_to_light ) )
+        {
+            continue; /* there's something inbetween our surface point
+                       * and this light, so we're effectively in shadow.
+                       * Skip this light entirely.  If transparency or
+                       * transluncy is implemented, this would change. */
+        }
+        /* add illuminatation from light */
+        for( int c=0; c<3; c++ )
+        {
+            /* note max is used so that lights cannot reduce illumination,
+             * even when illuminating the underside of a surface
+             */
+            out_color[c] +=   light->color[c] * sphere->color[c]
+            * fmax( 0.0, dot( surf_to_light.dir, surf_norm ) );
+        }
+
+    }
+}
+
+
+/* Simple shader with a specular component.
+ * Looks like shiny plastic.
+ */
+void phong_shader( Vec3 out_color,
+                   scene_t* scene,
+                   sphere_t* sphere,
+                   ray_t* original_ray,
+                   double hit_on_ray,
+                   int recursion_depth )
+{
+    /* scale factors for how much each kind of lighting affects the color */
+    const double specular = 0.2;
+    const double diffuse = 0.3;
+    const double ambient = 0.5;
+
+    /* specularity, how shiny the surface is */
+    const double shininess = 3.3;
+
+    set( out_color, 0,0,0 );
+    Vec3 surf_pos;
+    Vec3 surf_norm;
+    surf_pos_and_normal( surf_pos, surf_norm, sphere, original_ray, hit_on_ray );
+
+    /* ambient componnet is independent of lights */
+    mul( out_color, sphere->color, ambient );
+
+    /* for each light, intensity = surface normal dot light direction.
+     */
+    for( int i=0; i<scene->light_count; ++i )
+    {
+        /* compute direction and distance from surface to light */
+        light_t* light = &(scene->lights[i]);
+        ray_t surf_to_light;
+        copy( surf_to_light.org, surf_pos );
+        sub( surf_to_light.dir, light->pos, surf_pos );
+        double depth_to_light = len( surf_to_light.dir );
+        norm( surf_to_light.dir, surf_to_light.dir );
+        if( is_segment_blocked( scene, sphere, &surf_to_light, depth_to_light ) )
+        {
+            continue; /* there's something inbetween our surface point
+                       * and this light, so we're effectively in shadow.
+                       * Skip this light entirely.  If transparency or
+                       * transluncy is implemented, this would change. */
+        }
+        /* add illuminatation from light */
+        for( int c=0; c<3; c++ )
+        {
+            assert( is_close( dot( surf_norm, surf_norm ), 1.0 ) );
+
+            /* diffuse component */
+            out_color[c] += diffuse * light->color[c] * sphere->color[c]
+            * fmax( 0.0, dot( surf_to_light.dir, surf_norm ) );
+
+            /* specular component */
+            Vec3 view_dir; /* backwards of direction of original ray */
+            mul( view_dir, original_ray->dir, -1. );
+            norm( view_dir, view_dir );
+
+            Vec3 light_reflect_dir; /* direction that light is bouncing off surface */
+            reflect( light_reflect_dir, surf_to_light.dir, surf_norm );
+
+            /* v - (2 dot(v,n)n ) */
+
+
+            assert( is_close( dot( original_ray->dir, original_ray->dir), 1.0 ) );
+            assert( is_close( dot( light_reflect_dir, light_reflect_dir ), 1.0 ) );
+
+            double spec = fmax( dot( light_reflect_dir, original_ray->dir ), 0. );
+            if( spec > 0 )
+            {
+                out_color[c] += specular * pow( spec, shininess );
+            }
+        }
+    }
+}
+
+
+void mirror_shader( Vec3 out_color,
+                   scene_t* scene,
+                   sphere_t* sphere,
+                   ray_t* original_ray,
+                   double hit_on_ray,
+                   int recursion_depth )
+{
+    double reflectivity = 0.35;
+    Vec3 surf_pos;
+    Vec3 surf_norm;
+    surf_pos_and_normal( surf_pos, surf_norm, sphere, original_ray, hit_on_ray );
+
+    ray_t outbound;
+    copy( outbound.org, surf_pos );
+    reflect( outbound.dir, original_ray->dir, surf_norm );
+
+    /* need to offset slightly off the surface, else ray hits this sphere again */
+    Vec3 offset;
+    mul( offset, outbound.dir, 1e-6 );
+    add( outbound.org, outbound.org, offset );
+
+    Vec3 reflected_color;
+    set( reflected_color, 0,0,0 );
+    if( recursion_depth < 5 )
+    {
+        trace( scene, reflected_color, &outbound, recursion_depth + 1 );
+        mul( reflected_color, reflected_color, reflectivity );
+    }
+    else
+    {
+        reflectivity = 0;
+    }
+    Vec3 base_color;
+    set( base_color, 0, 0, 0 );
+    lambertian_shader( base_color,
+                       scene,
+                       sphere,
+                       original_ray,
+                       hit_on_ray,
+                       recursion_depth + 1 );
+    //mul( base_color, base_color, (1.0 - reflectivity) );
+    add( out_color, base_color, reflected_color );
+}
+
+
+--------------------------------------------------------------------------
+
+//
+//  shaders.h
+//  srt
+//
+//  Created by vector on 11/2/10.
+//  Copyright (c) 2010 Brian F. Allen. All rights reserved.
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#ifndef SRT_SHADERS_H
+#define SRT_SHADERS_H
+
+#include "raymath.h"
+
+void trace( scene_t* scene, Vec3 out_color, ray_t* ray, int recursion_depth );
+
+
+void constant_shader( Vec3 out_color,
+                     scene_t* scene,
+                     sphere_t* sphere,
+                     ray_t* original_ray,
+                     double hit_on_ray,
+                     int recursion_depth );
+
+void lambertian_shader( Vec3 out_color,
+                       scene_t* scene,
+                       sphere_t* sphere,
+                       ray_t* original_ray,
+                       double hit_on_ray,
+                       int recursion_depth );
+
+void phong_shader( Vec3 out_color,
+                   scene_t* scene,
+                   sphere_t* sphere,
+                   ray_t* original_ray,
+                   double hit_on_ray,
+                   int recursion_depth );
+
+void mirror_shader( Vec3 out_color,
+                    scene_t* scene,
+                    sphere_t* sphere,
+                    ray_t* original_ray,
+                    double hit_on_ray,
+                    int recursion_depth );
+
+
+#endif
+
+
+
+
+
+
+
+
+

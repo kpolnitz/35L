@@ -1,0 +1,62 @@
+1. hw9.txt will keep a log of all of the steps we take in the homework.
+2. First, we will checkout version 3.0 of diffutils under a branch named "quote"
+
+git checkout v3.0 -b quote 
+
+3. Then I run my patch:
+
+patch -p1 < quote-3.0-patch.txt
+
+4. Next I learned how to use the command add-change-log-entry-other-window
+
+5. I changed my log for the patch, similar to the way it was framed 
+in the original patch. I gave separate descriptions for each of the files 
+changed.
+
+6. Then I committed the changes that I made:
+
+git add (to put it in the stage for commit) 
+git commit (to commit the changes).
+
+
+7. Next I used git format-patch to generate formatted-patch.txt
+To use this, we needed my hex pattern: (d73ce7feb5e0e47ea453e20955d7e90bd37b4936)
+
+
+I then did: 
+
+git format-patch -1 --stdout d73ce7feb5e0e47ea453e20955d7e90bd37b4936  > formatted-patch.txt
+
+8. For my partner I created a new branch 
+
+git checkout v3.0 -b partner
+
+I applied their patch with 
+
+git am < format2.txt (partner's).
+
+9.
+
+Everything was built and ran successfully (make distdir, etc.) and gave the 
+same output as anticipated. 
+
+10.
+
+Next, we are going to run gitk on the git repository in Eggert's folder.
+I used the following to login/use XQuartz (for some reason -X didn't work 
+properly):
+
+ssh -Y classkae@lnxsrv09.seas.ucla.edu
+
+I was having problems accessing gitk so I had to do the following:
+
+export PATH=$PATH:/usr/local/cs/bin
+
+After doing everything above, I proceeding to take the required snapshot
+and give its description.
+
+
+
+
+
+ 

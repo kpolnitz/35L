@@ -1,0 +1,43 @@
+1. You can use man -k [keyword] (without brackets). I found this by typing in " man man"  and scrolling through to see the man -k option. After I tested this feature by finding a man file.
+2. I found that cp was located at /bin/cp. I used the command whereis cp after discovering this command by using man (man -k “where”).
+I discovered that wc was located at /usr/bin/wc. I also used the same command (whereis wc).
+3. The executable programs are as follows:
+   /usr/bin/w - Shows who is logged in and what they are doing
+   /usr/bin/[ - A shorter version of the test command
+   /usr/bin/X - Leads to a "portable, network-transparent window system"
+4. It is discovered that the symbolic link leads to /etc/alternatives/emacs (ls	-l).
+5. These operations are considered a combination of the "who" and what their permissions are.
+   g+s: Setting the ID for the group
+   o-x: Others are not permitted to use execution bits.
+6. To find files modified in the last 3 weeks, we use find / type f -mtime -21 
+7. We can use: find / type d -mtime -21 
+8. In /usr/bin/, there are 350 symbolic links (find -type l | wc)
+9. The oldest file is: libgamin-1.so.0.1.10
+10. It gets its data from locale settings and potential locale variables (LC_* Variables)
+11. I used C-h a to figure out the commands containing sort. They are the following: 
+Buffer-menu-sort              
+Buffer-menu-sort-by-column   
+ibuffer-invert-sorting       
+ibuffer-toggle-sorting-mode  
+rmail-sort-by-author          
+rmail-sort-by-correspondent   
+rmail-sort-by-date
+sort-columns
+sort-fields                 
+sort-lines                   
+sort-numeric-fields          
+sort-pages            
+sort-paragraphs 
+sort-regexp-fields           
+12. I was able to find the descriptions by using C-h c. I used C-h f to look more into each of the functions.  The commands are as follows:
+    C-M-a: runs beginning-of-defun: It will move you backward to the beginning of a defun (i.e moved cursor back to the beginning of this file) 
+    C-M-b: runs backward-sexp: You can move backwards across a single expression. (i.e when cursor in a word, moves it back to the first character of the word)
+    C-M-c: runs exit-recursive-edit: Exits the innermost recursive edit/mini-buffer
+    C-M-d: runs down-list: Moves forward and down to one more level of parentheses. 
+    C-M-e: runs command for end-of-defun: Moves to the end of the defun(moves cursor to the end of the file)
+    C-M-f: runs forward-sexp:Moves across a balanced expression (moves cursor to 'n' of "expression")
+    C-M-g: seems to be undefined
+    C-M-h: runs mark-defun: It will mark at the end of the defun and the point to the beginning. 
+13.Runs keyboard quit: 'Quit' appears in lower part of window. During the execution of Lisp code, using this character will cause a direct quit.
+14.Again I used C-h f to see the function of yank (C-y), which can be used to paste the last stretch of text that was killed.
+15. There are two files before, those with l in front of permission are highlighted in purple.

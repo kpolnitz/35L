@@ -1,0 +1,93 @@
+My partner for this project was Sydney Ng (different discussion).
+
+We began by testing if we could log on to each other’s servers (with success).
+We both used ifconfig and connected to one network via her wifi hotspot.
+
+We can also use ifconfig to get the IP address on our respective beagle bones:
+Mine: 172.31.28.64
+Hers: 172.20.10.7
+
+(We can also find the IP address of Sydney’s Beaglebone by using:
+ping <ipaddress>, as discovered on the internet.
+In addition, we used features like nmap when we were confused.)
+
+(My beaglebone was accessible as a wifi access point, Beagle050937)
+
+After this we set up guest users on both of our Beaglebones. 
+
+We did this with the following command:
+useradd [newusername]
+Hers on mine was:
+Sydney@172.31.28.64
+
+After I set a password with the passwd command. 
+passwd Sydney
+Enter new UNIX password: sydney123
+Retype new UNIX password:sydney123
+After, I created a home directory for my guest user.
+mkdir /home/Sydney
+
+Then I was able to give her ownership of the home directory created:
+chown Sydney /home/Sydney
+
+Sydney did the same thing for me on her beaglebone. My name was Kaela@172.20.10.7.
+
+We were able to connect to our respective users with no problem.
+
+After, we logged into our respective root users.
+
+Following this, we got into the creation of public/private keys to
+make our connections more secure. The following notes our process:
+
+command: ssh-keygen
+This command allowed us to generate a private and public key. After receiving this
+information, it was time to copy this to the remote server.
+Enter file in which to save the key (/home/root/.ssh/id_rsa): id_rsa 
+Enter passphrase (empty for no passphrase): kaela123 
+Enter same passphrase again: kaela123
+Your identification has been saved in id_rsa.
+Your public key has been saved in id_rsa.pub.
+The key fingerprint is:
+49:98:24:90:62:61:75:64:31:0d:f9:5d:6f:17:8a:c7 root@beaglebone
+The key's randomart image is:
++---[RSA 2048]----+
+| o++oB*          |
+|o.. o+.+   .   . |
+|..    + o . + . .|
+|       o o . E . |
+|        S   o .  |
+|                 |
+|                 |
+|                 |
+|                 |
++-----------------+
+
+command: ssh-copy-id 
+This is when we used this command. It allowed for us to copy the public key to the 
+remote server for further use. It immediately followed the creation of 
+the keys in the ssh-keygen command.
+
+After executing this command, it was time for my partner to ssh to see 
+if everything went well.
+What the result was was the computer asking for the passphrase
+so that it was able to decrypt the private key. Everything after that
+was a success.
+
+As an addition to this project, we also decided to use another command:
+ssh-agent (as mentioned in the lab). This was for the computer to remember
+the passphrase so that when the user went to log on, the user would not
+have to input anything.
+In utilizing this command, they ask for the passphrase from ssh-keygen. I
+basically continue with this process.
+Now, when I log onto the Beaglebone on my partner’s board, I do not have
+to use the password. 
+
+We also used port forwarding. I did this by doing the ssh -x command with logging
+on to the server to enable the forwarding option.
+When I log onto the remote server and input xterm, a shell window was produced 
+on my host.
+
+(Note: I also experimentally used ssh-add when I was experimenting with ssh-agent,
+this helped with giving the private key to the selected agent).
+
+
